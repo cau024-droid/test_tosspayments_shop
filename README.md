@@ -23,6 +23,8 @@ powershell -ExecutionPolicy Bypass -File serve.ps1
 | `login.html` | 로그인 · 회원가입(`?mode=signup`) · 비밀번호 찾기(`?mode=find`) |
 | `reset.html` | 비밀번호 재설정 메일의 링크로 들어와서 새 비밀번호 정하기 |
 | `mypage.html` | 내 주문 내역(결제 안 된 주문은 따로) · 좋아요한 상품 (회원만) |
+| `robots.txt` / `sitemap.xml` | 검색엔진·AI 검색 로봇 안내, 색인할 페이지 목록 (홈·카테고리 3개·상품 28개) |
+| `llms.txt` | AI 검색(ChatGPT·Claude·Perplexity 등)이 읽는 쇼핑몰 요약·쇼핑 안내·상품 목록 |
 | `order.html?id=` | 주문 상세 · 주문 취소(환불) · 리뷰 쓰기 (회원 본인 주문만) |
 
 ## 테스트 서버 API (`serve.ps1`)

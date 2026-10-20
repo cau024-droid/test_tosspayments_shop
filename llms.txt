@@ -1,0 +1,62 @@
+# OOTD STORE
+
+> 상의·신발·바지를 파는 한국어 데일리 패션 쇼핑몰이에요. 상품 28종을 팔고, 결제는 토스페이먼츠 결제위젯(테스트 환경)으로 해서 실제로 청구되지 않는 퍼블리싱 샘플이에요.
+
+- 사이트: https://testtosspaymentsshop-taupe.vercel.app/
+- 언어·통화: 한국어, 원(KRW)
+- 고객센터: 1234-5678 (평일 10:00~18:00)
+
+## 쇼핑 안내
+
+- 배송비: 주문 금액이 3만원 이상이거나 담은 상품이 모두 무료배송 상품이면 0원, 그 밖에는 3,000원이에요.
+- 출발: 오후 2시 전에 주문하면 오늘 출발해요.
+- 결제: 토스페이먼츠 결제위젯(카드, 퀵계좌이체 등). 테스트 환경이라 실제로 청구되지 않아요.
+- 비회원 주문: 돼요. 회원은 마이페이지에서 주문 내역·취소·리뷰를 쓸 수 있어요.
+- 취소·환불: 회원은 결제 후 7일 이내에 마이페이지 › 주문 상세에서 직접 전체 취소할 수 있어요.
+- 리뷰: 결제를 마친 회원만 주문한 상품에 하나씩 쓸 수 있어요. 별점·리뷰는 모두 실제 구매자의 것이에요.
+- 가격은 아래 목록 기준이고, 좋아요 수·별점·리뷰 수는 상품 페이지에서 실시간으로 보여줘요.
+
+## 카테고리
+
+- [상의](https://testtosspaymentsshop-taupe.vercel.app/tops.html): 반소매 티셔츠, 맨투맨, 후드 티셔츠, 셔츠 / 사이즈 S·M·L·XL·XXL
+- [신발](https://testtosspaymentsshop-taupe.vercel.app/shoes.html): 스니커즈, 러닝화, 로퍼, 부츠 / 사이즈 230~290
+- [바지](https://testtosspaymentsshop-taupe.vercel.app/pants.html): 데님 팬츠, 슬랙스, 트레이닝 팬츠, 카고 팬츠 / 사이즈 S·M·L·XL
+
+## 상의
+- [PLAINWORKS 에센셜 오버핏 반소매 티셔츠 화이트](https://testtosspaymentsshop-taupe.vercel.app/product.html?id=T001): 반소매 티셔츠, 29,000원 (정가 39,000원, 26% 할인), 무료배송
+- [OFFDUTY 헤비웨이트 로고 반소매 티셔츠 블랙](https://testtosspaymentsshop-taupe.vercel.app/product.html?id=T002): 반소매 티셔츠, 35,100원 (정가 45,000원, 22% 할인), 무료배송
+- [NORTHLAB 브러시드 기모 크루넥 스웨트셔츠 블루그레이](https://testtosspaymentsshop-taupe.vercel.app/product.html?id=T003): 맨투맨, 48,300원 (정가 69,000원, 30% 할인), 무료배송
+- [SLOWMOVE 피그먼트 다잉 맨투맨 샌드베이지](https://testtosspaymentsshop-taupe.vercel.app/product.html?id=T004): 맨투맨, 59,000원
+- [MODULE 투웨이 지퍼 후드 집업 포레스트](https://testtosspaymentsshop-taupe.vercel.app/product.html?id=T005): 후드 티셔츠, 62,300원 (정가 89,000원, 30% 할인), 무료배송
+- [PLAINWORKS 릴랙스드 핏 스웻 후디 멜란지그레이](https://testtosspaymentsshop-taupe.vercel.app/product.html?id=T006): 후드 티셔츠, 57,600원 (정가 72,000원, 20% 할인), 무료배송
+- [HAUS 옥스포드 버튼다운 셔츠 스카이블루](https://testtosspaymentsshop-taupe.vercel.app/product.html?id=T007): 셔츠, 45,500원 (정가 65,000원, 30% 할인)
+- [ROUTE 9 린넨 블렌드 오버 셔츠 아이보리](https://testtosspaymentsshop-taupe.vercel.app/product.html?id=T008): 셔츠, 55,300원 (정가 79,000원, 30% 할인), 무료배송
+- [KICKSTAND 빈티지 워싱 그래픽 티셔츠 버건디](https://testtosspaymentsshop-taupe.vercel.app/product.html?id=T009): 반소매 티셔츠, 29,400원 (정가 42,000원, 30% 할인)
+- [OFFDUTY 아치 로고 스웨트셔츠 네이비](https://testtosspaymentsshop-taupe.vercel.app/product.html?id=T010): 맨투맨, 51,000원 (정가 68,000원, 25% 할인), 무료배송
+
+## 신발
+- [KICKSTAND 클래식 로우 레더 스니커즈 올화이트](https://testtosspaymentsshop-taupe.vercel.app/product.html?id=S001): 스니커즈, 99,000원 (정가 129,000원, 23% 할인), 무료배송
+- [MODULE 스웨이드 컵솔 스니커즈 블랙](https://testtosspaymentsshop-taupe.vercel.app/product.html?id=S002): 스니커즈, 87,200원 (정가 109,000원, 20% 할인), 무료배송
+- [ROUTE 9 에어 쿠션 데일리 러닝화 오렌지](https://testtosspaymentsshop-taupe.vercel.app/product.html?id=S003): 러닝화, 119,000원 (정가 159,000원, 25% 할인), 무료배송
+- [NORTHLAB 트레일 러너 GTX 스톰그레이](https://testtosspaymentsshop-taupe.vercel.app/product.html?id=S004): 러닝화, 151,200원 (정가 189,000원, 20% 할인), 무료배송
+- [HAUS 페니 로퍼 폴리시드 레더 다크브라운](https://testtosspaymentsshop-taupe.vercel.app/product.html?id=S005): 로퍼, 134,400원 (정가 168,000원, 20% 할인), 무료배송
+- [SLOWMOVE 청키 솔 로퍼 블랙](https://testtosspaymentsshop-taupe.vercel.app/product.html?id=S006): 로퍼, 139,000원
+- [NORTHLAB 워커 레이스업 부츠 휘트](https://testtosspaymentsshop-taupe.vercel.app/product.html?id=S007): 부츠, 175,200원 (정가 219,000원, 20% 할인), 무료배송
+- [OFFDUTY 사이드 고어 첼시 부츠 블랙](https://testtosspaymentsshop-taupe.vercel.app/product.html?id=S008): 부츠, 132,300원 (정가 189,000원, 30% 할인), 무료배송
+- [PLAINWORKS 캔버스 하이브리드 스니커즈 세이지](https://testtosspaymentsshop-taupe.vercel.app/product.html?id=S009): 스니커즈, 62,300원 (정가 89,000원, 30% 할인)
+
+## 바지
+- [ROUTE 9 와이드 스트레이트 데님 팬츠 미드블루](https://testtosspaymentsshop-taupe.vercel.app/product.html?id=P001): 데님 팬츠, 55,300원 (정가 79,000원, 30% 할인), 무료배송
+- [MODULE 생지 셀비지 데님 팬츠 로우](https://testtosspaymentsshop-taupe.vercel.app/product.html?id=P002): 데님 팬츠, 103,200원 (정가 129,000원, 20% 할인), 무료배송
+- [HAUS 원턱 와이드 슬랙스 차콜](https://testtosspaymentsshop-taupe.vercel.app/product.html?id=P003): 슬랙스, 41,300원 (정가 59,000원, 30% 할인), 무료배송
+- [SLOWMOVE 세미 와이드 크림 슬랙스 베이지](https://testtosspaymentsshop-taupe.vercel.app/product.html?id=P004): 슬랙스, 55,000원
+- [PLAINWORKS 스웨트 조거 팬츠 차콜그레이](https://testtosspaymentsshop-taupe.vercel.app/product.html?id=P005): 트레이닝 팬츠, 34,300원 (정가 49,000원, 30% 할인), 무료배송
+- [KICKSTAND 사이드 라인 트랙 팬츠 네이비](https://testtosspaymentsshop-taupe.vercel.app/product.html?id=P006): 트레이닝 팬츠, 48,300원 (정가 69,000원, 30% 할인), 무료배송
+- [NORTHLAB 나일론 파라슈트 카고 팬츠 올리브](https://testtosspaymentsshop-taupe.vercel.app/product.html?id=P007): 카고 팬츠, 62,300원 (정가 89,000원, 30% 할인), 무료배송
+- [OFFDUTY 코튼 워크 카고 팬츠 스톤](https://testtosspaymentsshop-taupe.vercel.app/product.html?id=P008): 카고 팬츠, 65,600원 (정가 82,000원, 20% 할인)
+- [SLOWMOVE 라이트 워싱 루즈핏 데님 스카이](https://testtosspaymentsshop-taupe.vercel.app/product.html?id=P009): 데님 팬츠, 52,500원 (정가 75,000원, 30% 할인), 무료배송
+
+## Optional
+
+- [자주 묻는 질문](https://testtosspaymentsshop-taupe.vercel.app/#faq)
+- [사이트맵](https://testtosspaymentsshop-taupe.vercel.app/sitemap.xml)

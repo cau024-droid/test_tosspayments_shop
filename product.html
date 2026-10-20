@@ -4,6 +4,25 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>상품 상세 | OOTD STORE</title>
+  <meta name="description" content="OOTD STORE 상품 상세: 가격, 할인율, 사이즈, 배송비, 실제 구매 회원의 별점과 리뷰를 확인하고 토스페이먼츠로 결제해요." />
+  <meta name="robots" content="index, follow, max-image-preview:large" />
+  <link rel="canonical" href="https://testtosspaymentsshop-taupe.vercel.app/product.html" />
+  <meta name="theme-color" content="#000000" />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="OOTD STORE" />
+  <meta property="og:locale" content="ko_KR" />
+  <meta property="og:title" content="상품 상세 | OOTD STORE" />
+  <meta property="og:description" content="OOTD STORE 상품 상세: 가격, 할인율, 사이즈, 배송비, 실제 구매 회원의 별점과 리뷰를 확인하고 토스페이먼츠로 결제해요." />
+  <meta property="og:url" content="https://testtosspaymentsshop-taupe.vercel.app/product.html" />
+  <meta property="og:image" content="https://testtosspaymentsshop-taupe.vercel.app/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="OOTD STORE 상의·신발·바지 데일리 패션 쇼핑몰" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="상품 상세 | OOTD STORE" />
+  <meta name="twitter:description" content="OOTD STORE 상품 상세: 가격, 할인율, 사이즈, 배송비, 실제 구매 회원의 별점과 리뷰를 확인하고 토스페이먼츠로 결제해요." />
+  <meta name="twitter:image" content="https://testtosspaymentsshop-taupe.vercel.app/og-image.png" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
@@ -22,9 +41,11 @@
     const root = document.getElementById("detail-root");
 
     if (!p) {
+      document.querySelector('meta[name="robots"]').content = "noindex, follow";
       root.innerHTML = `<p class="empty">상품을 찾을 수 없어요. <a href="index.html"><u>홈으로</u></a></p>`;
     } else {
-      document.title = `${p.name} | OOTD STORE`;
+      setMeta({ title: `${p.name} | ${p.brand} | OOTD STORE`, description: productDescription(p), path: `product.html?id=${p.id}` });
+      setJsonLd("product", productJsonLd(p));
       const cat = CATEGORIES[p.cat];
       const off = pct(p);
       const state = { size: null, qty: 1 };
@@ -78,6 +99,7 @@
       const drawStats = () => {
         document.getElementById("d-reviews").textContent = p.reviews ? `★ ${p.rating} · ${p.reviews.toLocaleString()}개` : "아직 리뷰가 없어요";
         document.getElementById("d-likes").textContent = `♥ ${p.likes.toLocaleString()}`;
+        setJsonLd("product", productJsonLd(p));
       };
       drawStats();
       document.addEventListener("stats:change", drawStats);

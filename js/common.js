@@ -1,5 +1,7 @@
 // 공통: 레이아웃, 가격 포맷, 장바구니, 좋아요, 상품 카드
 const SHOP_NAME = "OOTD STORE";
+// 검색엔진에 알려줄 대표 주소 (canonical, 구조화 데이터, sitemap.xml 과 같게 맞춰요)
+const SITE_URL = "https://testtosspaymentsshop-taupe.vercel.app";
 
 const won = (n) => n.toLocaleString("ko-KR") + "원";
 const pct = (p) => Math.round((1 - p.sale / p.price) * 100);
@@ -428,6 +430,109 @@ function renderCategoryPage(catKey) {
   document.addEventListener("stats:change", draw);
 
   draw();
+  setJsonLd("itemlist", categoryJsonLd(catKey));
+}
+
+// ---- 검색엔진·AI 검색용 정보 (SEO·AEO·GEO) ----
+// 페이지마다 바뀌는 제목·설명·대표 주소를 head 의 meta 태그에 맞춰요.
+function setMeta({ title, description, path }) {
+  const url = SITE_URL + "/" + path;
+  const set = (selector, attr, value) => {
+    const el = document.querySelector(selector);
+    if (el) el.setAttribute(attr, value);
+  };
+  if (title) {
+    document.title = title;
+    set('meta[property="og:title"]', "content", title);
+    set('meta[name="twitter:title"]', "content", title);
+  }
+  if (description) {
+    set('meta[name="description"]', "content", description);
+    set('meta[property="og:description"]', "content", description);
+    set('meta[name="twitter:description"]', "content", description);
+  }
+  set('link[rel="canonical"]', "href", url);
+  set('meta[property="og:url"]', "content", url);
+}
+
+// 구조화 데이터(JSON-LD)를 넣거나 새 값으로 바꿔요.
+function setJsonLd(key, data) {
+  let el = document.querySelector(`script[data-ld="${key}"]`);
+  if (!el) {
+    el = document.createElement("script");
+    el.type = "application/ld+json";
+    el.dataset.ld = key;
+    document.head.appendChild(el);
+  }
+  el.textContent = JSON.stringify(data);
+}
+
+const productUrl = (p) => `${SITE_URL}/product.html?id=${p.id}`;
+
+// 카테고리 목록: 상품 목록(ItemList)
+function categoryJsonLd(catKey) {
+  const cat = CATEGORIES[catKey];
+  const list = PRODUCTS.filter((p) => p.cat === catKey);
+  return {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: `${SHOP_NAME} ${cat.name}`,
+    numberOfItems: list.length,
+    itemListElement: list.map((p, i) => ({ "@type": "ListItem", position: i + 1, url: productUrl(p), name: p.name })),
+  };
+}
+
+// 상품 상세: 상품(Product) + 이동 경로(BreadcrumbList). 리뷰가 있을 때만 평균 별점을 넣어요.
+function productJsonLd(p) {
+  const cat = CATEGORIES[p.cat];
+  const product = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    sku: p.id,
+    name: p.name,
+    description: productDescription(p),
+    brand: { "@type": "Brand", name: p.brand },
+    category: `${cat.name} > ${p.sub}`,
+    url: productUrl(p),
+    offers: {
+      "@type": "Offer",
+      url: productUrl(p),
+      priceCurrency: "KRW",
+      price: p.sale,
+      availability: "https://schema.org/InStock",
+      itemCondition: "https://schema.org/NewCondition",
+      seller: { "@type": "Organization", name: SHOP_NAME },
+      shippingDetails: {
+        "@type": "OfferShippingDetails",
+        shippingRate: { "@type": "MonetaryAmount", value: p.free || p.sale >= 30000 ? 0 : 3000, currency: "KRW" },
+        shippingDestination: { "@type": "DefinedRegion", addressCountry: "KR" },
+      },
+    },
+  };
+  if (p.reviews) {
+    product.aggregateRating = { "@type": "AggregateRating", ratingValue: p.rating, reviewCount: p.reviews, bestRating: 5, worstRating: 1 };
+  }
+  return [
+    product,
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "홈", item: SITE_URL + "/" },
+        { "@type": "ListItem", position: 2, name: cat.name, item: `${SITE_URL}/${cat.page}` },
+        { "@type": "ListItem", position: 3, name: p.name, item: productUrl(p) },
+      ],
+    },
+  ];
+}
+
+// 검색 결과·AI 답변에 그대로 쓰일 수 있게 상품을 한 문장으로 설명해요.
+function productDescription(p) {
+  const cat = CATEGORIES[p.cat];
+  const off = pct(p);
+  const price = off > 0 ? `정가 ${won(p.price)}에서 ${off}% 할인한 ${won(p.sale)}` : won(p.sale);
+  const ship = p.free ? "무료배송" : "3만원 이상 무료배송(미만 3,000원)";
+  return `${p.brand} ${p.name}. ${cat.name} › ${p.sub}, ${price}. 사이즈 ${cat.sizes.join("·")}, ${ship}. OOTD STORE에서 토스페이먼츠로 결제해요.`;
 }
 
 // ---- 리뷰 ----

@@ -87,6 +87,15 @@ OOTD STORE: 빌드 도구 없이 HTML·CSS·바닐라 JS로 만든 쇼핑몰 샘
 - 스키마 변경은 Supabase MCP `apply_migration`으로 해요. `orders.status`는 check 제약(`orders_status_check`)이 있어서, 새 상태를 쓰려면 제약부터 고쳐요.
 - `.vercelignore`가 `serve.ps1`, `server-data`, `.claude`, `.mcp.json`을 배포에서 빼요.
 
+## 검색엔진·AI 검색 (SEO·AEO·GEO)
+
+- 사이트 주소 `https://testtosspaymentsshop-taupe.vercel.app`가 `js/common.js`의 `SITE_URL`, 각 페이지 head(canonical·og), `index.html`·카테고리 페이지의 JSON-LD, `robots.txt`, `sitemap.xml`, `llms.txt`에 들어 있어요. 주소가 바뀌면 모두 바꿔요.
+- 공개 페이지(`index`, `tops`·`shoes`·`pants`, `product`)만 색인해요. 장바구니·주문·결제·로그인·마이페이지는 `<meta name="robots" content="noindex">`예요.
+- 상품 상세의 제목·설명·canonical과 `Product`·`BreadcrumbList` JSON-LD는 `setMeta`·`productJsonLd`(`js/common.js`)가 그려요. 카테고리 목록의 `ItemList`도 `renderCategoryPage`가 넣어요.
+- 홈 FAQ는 화면(`#faq`)과 `FAQPage` JSON-LD 두 곳에 같은 글로 있어요. 배송비·취소 기간 같은 규칙을 바꾸면 FAQ와 `llms.txt`도 고쳐요.
+- 상품을 더하거나 가격을 바꾸면 `sitemap.xml`과 `llms.txt`의 상품 목록, 카테고리 페이지의 설명(개수·가격 범위)을 함께 고쳐요.
+- `og-image.png`(1200×630)는 PowerShell `System.Drawing`으로 만들었어요.
+
 ## 관례
 
 - 코드 주석과 화면 문구는 한국어 해요체로 써요. (`serve.ps1` 주석만 영어)

@@ -1,0 +1,40 @@
+# OOTD STORE
+# 상품·카테고리 페이지는 검색엔진과 AI 검색 모두 읽을 수 있어요.
+# 로그인·결제·주문 페이지와 API는 검색 결과에 나올 필요가 없어서 막아요.
+
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /cart.html
+Disallow: /checkout.html
+Disallow: /success.html
+Disallow: /fail.html
+Disallow: /mypage.html
+Disallow: /order.html
+Disallow: /reset.html
+
+# AI 검색·답변 서비스 (GEO)
+User-agent: GPTBot
+User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
+User-agent: ClaudeBot
+User-agent: Claude-SearchBot
+User-agent: Claude-User
+User-agent: PerplexityBot
+User-agent: Perplexity-User
+User-agent: Google-Extended
+User-agent: Applebot-Extended
+User-agent: Bingbot
+User-agent: Yeti
+Allow: /
+Allow: /llms.txt
+Disallow: /api/
+Disallow: /cart.html
+Disallow: /checkout.html
+Disallow: /success.html
+Disallow: /fail.html
+Disallow: /mypage.html
+Disallow: /order.html
+Disallow: /reset.html
+
+Sitemap: https://testtosspaymentsshop-taupe.vercel.app/sitemap.xml
