@@ -17,6 +17,147 @@ function save(key, value) {
   try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* ignore */ }
 }
 
+// ---- Supabase (회원·좋아요·리뷰) ----
+// 공개(publishable) 키라 브라우저에 둬도 돼요. 데이터는 RLS로 본인 것만 읽고 쓸 수 있어요.
+const SUPABASE_URL = "https://bxtfhadwhteljgzmuecy.supabase.co";
+const SUPABASE_KEY = "sb_publishable_0EP4VpNtaQIGY6W4cUFhWw_vvyxzeB4";
+const sb = window.supabase && window.supabase.createClient ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+
+// 지금 페이지가 있는 폴더 주소 (메일 링크가 돌아올 곳)
+const pageBase = () => location.href.replace(/[?#].*$/, "").replace(/[^/]*$/, "");
+
+const Auth = {
+  user: null,
+  profile: null,
+  async init() {
+    if (!sb) return;
+    const { data } = await sb.auth.getSession();
+    await this.apply(data.session, "INITIAL");
+    // 콜백 안에서 Supabase를 바로 부르면 멈출 수 있어서 한 박자 늦게 처리해요.
+    sb.auth.onAuthStateChange((event, session) => setTimeout(() => this.apply(session, event), 0));
+  },
+  async apply(session, event) {
+    const user = session ? session.user : null;
+    const before = this.user ? this.user.id : null;
+    this.user = user;
+    if ((user ? user.id : null) === before) return;
+    if (user) {
+      const { data } = await sb.from("profiles").select("*").eq("id", user.id).maybeSingle();
+      this.profile = data;
+      // 로그인하는 순간에만 비회원일 때 누른 좋아요를 계정으로 옮겨요.
+      await Likes.sync(event === "SIGNED_IN");
+    } else {
+      this.profile = null;
+      if (before) { save("likes", []); refreshLikeButtons(); }
+    }
+    drawAuthArea();
+    document.dispatchEvent(new CustomEvent("auth:change"));
+  },
+  name() {
+    if (!this.user) return "";
+    return (this.profile && this.profile.name) || this.user.email.split("@")[0];
+  },
+  async token() {
+    if (!sb) return null;
+    const { data } = await sb.auth.getSession();
+    return data.session ? data.session.access_token : null;
+  },
+  async signOut() {
+    if (sb) await sb.auth.signOut();
+  },
+};
+Auth.ready = Auth.init().catch((err) => console.error("[auth]", err));
+
+// 로그인해야 쓸 수 있는 페이지에서 불러요. 로그인하지 않았으면 로그인 화면으로 보내요.
+async function requireLogin() {
+  await Auth.ready;
+  if (Auth.user) return true;
+  const here = location.pathname.split("/").pop() + location.search;
+  location.replace("login.html?next=" + encodeURIComponent(here));
+  return false;
+}
+
+// 로그인 후 돌아갈 곳. 같은 사이트의 페이지만 허용해요.
+function safeNext(next) {
+  return /^[a-z-]+\.html(\?[^#]*)?$/.test(next || "") ? next : "index.html";
+}
+
+// 우리 서버 API 호출. 로그인했으면 토큰을 함께 보내요.
+async function api(path, { method = "GET", body } = {}) {
+  const headers = { "Content-Type": "application/json" };
+  const token = Auth.user ? await Auth.token() : null;
+  if (token) headers.Authorization = "Bearer " + token;
+  let res;
+  try {
+    res = await fetch(path, { method, headers, body: body ? JSON.stringify(body) : undefined });
+  } catch {
+    const err = new Error("서버에 연결할 수 없어요. 잠시 후 다시 시도해 주세요");
+    err.code = "NETWORK_ERROR";
+    throw err;
+  }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const err = new Error(data.message || "요청을 처리하지 못했어요");
+    err.code = data.code;
+    err.status = res.status;
+    throw err;
+  }
+  return data;
+}
+
+// ---- 주문 상태 ----
+const ORDER_STATUS = {
+  DONE: "결제 완료",
+  CANCELED: "취소 완료",
+  PARTIAL_CANCELED: "부분 취소",
+  WAITING_FOR_DEPOSIT: "입금 대기",
+  PENDING: "결제 대기",
+  READY: "결제 대기",
+  IN_PROGRESS: "결제 대기",
+  FAILED: "결제 실패",
+  ABORTED: "결제 실패",
+  EXPIRED: "결제 실패",
+  USER_CANCELED: "결제 취소",
+};
+// 결제가 되지 않은 주문 (목록에서 숨겨요)
+const UNPAID_STATUS = ["PENDING", "READY", "IN_PROGRESS", "FAILED", "ABORTED", "EXPIRED", "USER_CANCELED"];
+const statusLabel = (s) => ORDER_STATUS[s] || s;
+const fmtDate = (iso) => (iso ? new Date(iso).toLocaleString("ko-KR") : "-");
+const fmtDay = (iso) => (iso ? new Date(iso).toLocaleDateString("ko-KR") : "-");
+
+// ---- 상품 통계 (실제 좋아요 수·리뷰 수·평균 별점) ----
+// 마지막으로 읽은 값을 먼저 보여주고, 새 값을 받으면 "stats:change" 이벤트로 화면을 다시 그려요.
+const Stats = {
+  map: load("productStats", {}),
+  apply() {
+    PRODUCTS.forEach((p) => {
+      const s = this.map[p.id] || {};
+      p.likes = s.likes || 0;
+      p.reviews = s.reviews || 0;
+      p.rating = s.rating || 0;
+    });
+  },
+  async refresh() {
+    if (!sb) return;
+    const { data, error } = await sb.rpc("product_stats");
+    if (error) return console.error("[stats]", error.message);
+    this.map = {};
+    data.forEach((r) => { this.map[r.product_id] = { likes: Number(r.likes), reviews: Number(r.reviews), rating: Number(r.rating) || 0 }; });
+    save("productStats", this.map);
+    this.apply();
+    document.dispatchEvent(new CustomEvent("stats:change"));
+  },
+  // 좋아요를 누르면 서버 값을 기다리지 않고 바로 숫자를 바꿔요.
+  bump(id, diff) {
+    const s = (this.map[id] = this.map[id] || { likes: 0, reviews: 0, rating: 0 });
+    s.likes = Math.max(0, s.likes + diff);
+    save("productStats", this.map);
+    this.apply();
+  },
+};
+Stats.apply();
+Stats.refresh();
+
 // ---- 결제 실패 기록 ----
 // 결제창을 닫았거나 실패한 이유를 서버 주문에 남겨요. 실패해도 화면에는 영향이 없어요.
 function reportPaymentFail(orderId, code, message) {
@@ -81,6 +222,7 @@ function lineHtml(l, editable) {
 }
 
 // ---- 좋아요 ----
+// 비회원은 이 브라우저에만 저장해요. 로그인하면 계정(Supabase likes)에 저장하고, 브라우저에는 사본을 둬요.
 const Likes = {
   all() { return load("likes", []); },
   has(id) { return this.all().includes(id); },
@@ -89,9 +231,38 @@ const Likes = {
     const i = list.indexOf(id);
     i >= 0 ? list.splice(i, 1) : list.push(id);
     save("likes", list);
-    return i < 0;
+    const on = i < 0;
+    if (Auth.user && sb) {
+      const q = on ? sb.from("likes").insert({ product_id: id }) : sb.from("likes").delete().eq("product_id", id);
+      q.then(({ error }) => {
+        if (error && error.code !== "23505") toast("좋아요를 저장하지 못했어요. 잠시 후 다시 눌러 주세요");
+      });
+      Stats.bump(id, on ? 1 : -1);
+    }
+    return on;
+  },
+  // 계정의 좋아요를 읽어와요. merge 가 true 면 비회원일 때 누른 좋아요를 계정에 더해요.
+  async sync(merge) {
+    const { data, error } = await sb.from("likes").select("product_id");
+    if (error) return console.error("[likes]", error.message);
+    const remote = data.map((r) => r.product_id);
+    const extra = merge ? this.all().filter((id) => !remote.includes(id) && getProduct(id)) : [];
+    if (extra.length) {
+      const { error: upErr } = await sb.from("likes")
+        .upsert(extra.map((product_id) => ({ product_id })), { onConflict: "user_id,product_id", ignoreDuplicates: true });
+      if (upErr) console.error("[likes] merge failed:", upErr.message);
+      else Stats.refresh();
+    }
+    save("likes", [...remote, ...extra]);
+    refreshLikeButtons();
   },
 };
+
+// 화면의 하트를 저장된 좋아요에 맞춰요.
+function refreshLikeButtons() {
+  document.querySelectorAll("[data-like]").forEach((b) => b.classList.toggle("on", Likes.has(b.dataset.like)));
+  document.dispatchEvent(new CustomEvent("likes:change"));
+}
 
 // ---- 레이아웃 ----
 function renderLayout(active) {
@@ -111,7 +282,7 @@ function renderLayout(active) {
           <input type="search" placeholder="브랜드, 상품, 프로필, 태그 등" aria-label="검색" />
         </form>
         <div class="header-util">
-          <a href="#" onclick="toast('로그인은 퍼블리싱 범위 밖이에요'); return false;">로그인</a>
+          <span class="auth-area" id="auth-area"></span>
           <a href="cart.html" class="cart-link">장바구니 <span class="cart-badge" id="cart-badge">0</span></a>
         </div>
       </div>
@@ -133,6 +304,24 @@ function renderLayout(active) {
     </footer>`;
 
   updateCartBadge();
+  // 로그인 상태를 확인하기 전에는 비워 두고, 확인한 뒤에 그려요. (깜빡임 방지)
+  Auth.ready.then(drawAuthArea);
+}
+
+// 헤더 오른쪽 위: "OOO님 · 마이페이지 · 로그아웃" 또는 "로그인 · 회원가입"
+function drawAuthArea() {
+  const el = document.getElementById("auth-area");
+  if (!el) return;
+  if (!sb) { el.innerHTML = ""; return; }
+  el.innerHTML = Auth.user
+    ? `<span class="who">${escapeHtml(Auth.name())}님</span><a href="mypage.html">마이페이지</a><button type="button" id="logout-btn">로그아웃</button>`
+    : `<a href="login.html">로그인</a><a href="login.html?mode=signup">회원가입</a>`;
+  const out = document.getElementById("logout-btn");
+  if (out) out.onclick = async () => {
+    await Auth.signOut();
+    toast("로그아웃했어요");
+    if (document.body.dataset.private === "true") location.href = "index.html";
+  };
 }
 
 function updateCartBadge() {
@@ -161,7 +350,7 @@ function productCard(p, rank) {
         </div>
         <div class="meta">
           <span class="heart">♥ ${p.likes.toLocaleString()}</span>
-          <span>★ ${p.rating} (${p.reviews.toLocaleString()})</span>
+          ${p.reviews ? `<span>★ ${p.rating} (${p.reviews.toLocaleString()})</span>` : ""}
         </div>
         <div class="tags">
           ${p.free ? `<span class="tag free">무료배송</span>` : ""}
@@ -236,6 +425,98 @@ function renderCategoryPage(catKey) {
     draw();
   });
   sortSel.addEventListener("change", () => { state.sort = sortSel.value; draw(); });
+  document.addEventListener("stats:change", draw);
 
   draw();
+}
+
+// ---- 리뷰 ----
+const stars = (n) => "★".repeat(n) + "☆".repeat(5 - n);
+
+function reviewHtml(r, mine) {
+  return `
+    <div class="review" data-review="${r.id}">
+      <div class="review-head">
+        <span class="review-stars" aria-label="별점 ${r.rating}점">${stars(r.rating)}</span>
+        <span class="review-meta">${escapeHtml(r.author_name)} · ${fmtDay(r.created_at)}${r.size ? ` · 구매 사이즈 ${escapeHtml(r.size)}` : ""}</span>
+        ${mine ? `<span class="review-mine"><button type="button" data-act="edit">수정</button><button type="button" data-act="delete">삭제</button></span>` : ""}
+      </div>
+      <p class="review-body">${escapeHtml(r.content)}</p>
+    </div>`;
+}
+
+function reviewFormHtml(r) {
+  const rating = r ? r.rating : 5;
+  return `
+    <form class="review-form">
+      <div class="star-pick" aria-label="별점">
+        ${[1, 2, 3, 4, 5].map((n) => `<button type="button" data-star="${n}" class="${n <= rating ? "on" : ""}" aria-label="${n}점">★</button>`).join("")}
+      </div>
+      <textarea name="content" maxlength="500" placeholder="상품은 어떠셨나요? 10자 이상 써 주세요">${r ? escapeHtml(r.content) : ""}</textarea>
+      <div class="review-form-foot">
+        <span class="len"></span>
+        <div class="review-form-btns">
+          <button type="button" class="btn btn-white" data-act="cancel">취소</button>
+          <button type="submit" class="btn btn-black">${r ? "수정하기" : "등록하기"}</button>
+        </div>
+      </div>
+    </form>`;
+}
+
+// 별점 고르기, 글자 수 표시, 저장 버튼을 연결해요.
+function bindReviewForm(form, { rating, onSubmit, onCancel }) {
+  let value = rating || 5;
+  const ta = form.querySelector("textarea");
+  const len = form.querySelector(".len");
+  const updateLen = () => { len.textContent = `${ta.value.trim().length}/500자`; };
+  updateLen();
+  ta.oninput = updateLen;
+  form.querySelector(".star-pick").onclick = (e) => {
+    const b = e.target.closest("[data-star]");
+    if (!b) return;
+    value = Number(b.dataset.star);
+    form.querySelectorAll("[data-star]").forEach((s) => s.classList.toggle("on", Number(s.dataset.star) <= value));
+  };
+  form.querySelector('[data-act="cancel"]').onclick = onCancel;
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+    const content = ta.value.trim();
+    if (content.length < 10) return toast("리뷰는 10자 이상 써 주세요");
+    if (content.length > 500) return toast("리뷰는 500자까지 쓸 수 있어요");
+    const btn = form.querySelector('[type="submit"]');
+    btn.disabled = true;
+    try {
+      await onSubmit({ rating: value, content });
+    } catch (err) {
+      toast(err.message);
+    } finally {
+      btn.disabled = false;
+    }
+  };
+  ta.focus();
+}
+
+const Reviews = {
+  // id 가 있으면 고치고, 없으면 새로 써요. 사이즈와 작성자 이름은 DB가 주문에서 채워요.
+  async save({ id, orderId, productId, rating, content }) {
+    const q = id
+      ? sb.from("reviews").update({ rating, content }).eq("id", id)
+      : sb.from("reviews").insert({ order_id: orderId, product_id: productId, rating, content });
+    const { data, error } = await q.select().single();
+    if (error) throw new Error(reviewErrorMessage(error));
+    Stats.refresh();
+    return data;
+  },
+  async remove(id) {
+    const { error } = await sb.from("reviews").delete().eq("id", id);
+    if (error) throw new Error("리뷰를 지우지 못했어요");
+    Stats.refresh();
+  },
+};
+
+function reviewErrorMessage(error) {
+  if (error.code === "23505") return "이 상품의 리뷰는 이미 썼어요";
+  if (/REVIEW_NOT_ALLOWED/.test(error.message)) return "결제 완료된 내 주문의 상품만 리뷰를 쓸 수 있어요";
+  if (error.code === "23514") return "별점과 글(10~500자)을 확인해 주세요";
+  return "리뷰를 저장하지 못했어요. 잠시 후 다시 시도해 주세요";
 }

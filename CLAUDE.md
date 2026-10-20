@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 OOTD STORE: 빌드 도구 없이 HTML·CSS·바닐라 JS로 만든 쇼핑몰 샘플이에요. 토스페이먼츠 결제위젯(v2, 테스트 키)으로 결제하고, 서버가 결제를 승인해요.
 
-앞으로 만들 기능(회원, 주문 내역, 취소·환불, 리뷰, 좋아요)과 순서는 `PRD.md`에 있어요.
+기능 정의와 순서는 `PRD.md`에 있어요. 회원가입·로그인, 내 주문 내역, 주문 취소·환불, 좋아요, 리뷰까지 만들었어요.
 
 ## 실행
 
@@ -22,12 +22,15 @@ OOTD STORE: 빌드 도구 없이 HTML·CSS·바닐라 JS로 만든 쇼핑몰 샘
 - 결제 끝까지: 결제위젯 → 퀵계좌이체 → "다음" → 테스트 비밀번호 `000000` (키패드 숫자 위치가 매번 바뀌어요)
 - 결제창을 닫으면 위젯이 `USER_CANCEL` 에러를 던져요.
 - Vercel 함수(`api/*.js`)는 이 PC에서 실행할 수 없어요. 배포한 뒤에 확인해요.
+  - 문법·로직만 미리 보려면 preview 탭에서 소스를 `fetch`해 `new Function("require","module","exports","process","Buffer", src)`로 읽고, `fetch`를 가짜로 바꿔서 핸들러를 불러요. 로컬 서버가 `api/` 경로를 가로채서 `api/*.js` 파일은 그대로 받을 수 없어요(임시 폴더에 복사해서 읽고 지워요).
+- DB 권한(RLS): `execute_sql`의 `do` 블록에서 테스트 회원을 `auth.users`에 넣고 `set local role authenticated` + `request.jwt.claims`로 회원을 흉내 낸 뒤, 마지막에 `raise exception`으로 결과를 보여주고 모두 되돌려요.
+- 회원 가입·로그인은 Supabase Auth(외부)로 가서 Claude가 대신할 수 없어요. 사용자가 직접 가입해서 확인해요.
 
 ## 구조에서 알아야 할 것
 
 ### 백엔드가 두 개예요
 
-같은 API(`POST /api/orders`, `POST /api/confirm`, `POST /api/fail`)를 두 곳에서 따로 구현해요. 한쪽을 바꾸면 다른 쪽도 맞춰야 해요.
+같은 API(`POST /api/orders`, `POST /api/confirm`, `POST /api/fail`, `GET /api/my-orders`, `POST /api/cancel`)를 두 곳에서 따로 구현해요. 한쪽을 바꾸면 다른 쪽도 맞춰야 해요.
 
 | | `serve.ps1` (로컬) | `api/*.js` + `lib/shop.js` (Vercel) |
 |---|---|---|
@@ -36,6 +39,13 @@ OOTD STORE: 빌드 도구 없이 HTML·CSS·바닐라 JS로 만든 쇼핑몰 샘
 | 승인 결과 저장 | 성공: 토스 `status`(`DONE` 등)와 `payment`. 실패: `FAILED` + 실패 코드·메시지 | 같음 (Supabase) |
 | 결제 안 됨 (`/api/fail`) | 결제창 닫음(`USER_CANCEL`, `PAY_PROCESS_CANCELED`)은 `USER_CANCELED`, 그 밖은 `FAILED`. 결제된 주문은 바꾸지 않음 | 같음 |
 | 새로고침 중복 승인 방지 | 결제된 주문이면 저장된 결과 반환 (다른 `paymentKey`면 409) | 같음 |
+| 회원 확인 | `Authorization: Bearer <토큰>`을 Supabase `/auth/v1/user`에 물어봄(publishable 키). 토큰 없으면 비회원, 틀리면 401 | 같음(서비스 롤 키) |
+| 내 주문 (`/api/my-orders`) | 메모리에서 `userId`가 같은 주문 | Supabase `orders?user_id=eq.` |
+| 취소 (`/api/cancel`) | 본인·`DONE`·승인 후 7일 이내만. 토스 `/v1/payments/{paymentKey}/cancel` (`Idempotency-Key: cancel-<orderId>`) | 같음 |
+
+- 주문 응답 모양은 `lib/shop.js`의 `toMyOrder`와 `serve.ps1`의 `ConvertTo-MyOrder`가 맞춰요.
+- 취소 이유 목록이 `lib/shop.js`, `serve.ps1`, `js/order.js` 세 곳에 있어요. `serve.ps1`에는 `\uXXXX`로 써요. (BOM 없는 파일을 Windows PowerShell 5.1이 ANSI로 읽어서 한글이 깨져요. Edit 도구로 넣으면 한글로 바뀌니 셸에서 넣어요.)
+- 로컬 주문은 Supabase에 없어서, 로컬에서 결제한 주문에는 리뷰를 쓸 수 없어요.
 
 ### 금액 규칙이 세 곳에 있어요
 
@@ -53,14 +63,24 @@ OOTD STORE: 빌드 도구 없이 HTML·CSS·바닐라 JS로 만든 쇼핑몰 샘
 
 ### 프론트엔드
 
-모듈 없이 전역 스크립트예요. 모든 페이지가 `js/products.js` → `js/common.js` → 페이지 스크립트 순서로 불러와요. 장바구니, 좋아요, 주문 정보는 `localStorage`(`load`/`save` 헬퍼)에 저장해요. 레이아웃(헤더·푸터)은 `renderLayout`이 그려요.
+모듈 없이 전역 스크립트예요. 모든 페이지가 supabase-js(CDN, `@2.45.4` UMD) → `js/products.js` → `js/common.js` → 페이지 스크립트 순서로 불러와요. 장바구니, 주문 정보는 `localStorage`(`load`/`save` 헬퍼)에 저장해요. 레이아웃(헤더·푸터)은 `renderLayout`이 그려요.
+
+- `js/common.js`의 `sb`(Supabase 클라이언트)·`Auth`(로그인 상태, `Auth.ready` 프로미스)·`api()`(우리 API 호출, 로그인했으면 토큰을 붙임)·`requireLogin()`.
+- 회원·좋아요·리뷰는 브라우저가 Supabase에 바로 읽고 써요(RLS). 주문은 개인정보가 있어서 서버 API로만 읽어요.
+- 좋아요: 비회원은 `localStorage`의 `likes`만. 로그인하면 `likes` 테이블에 저장하고 `localStorage`는 사본. 로그인하는 순간(`SIGNED_IN`)에만 비회원 좋아요를 계정에 합쳐요. 로그아웃하면 사본을 지워요.
+- 좋아요 수·리뷰 수·별점은 `js/products.js`에 없어요. `Stats`가 `product_stats()` RPC로 읽어 `PRODUCTS`에 채우고, 바뀌면 `stats:change` 이벤트로 목록을 다시 그려요. 그 밖의 이벤트: `auth:change`, `likes:change`.
+- 페이지: `login.html`(`?mode=signup|find`, `?next=`), `reset.html`(비밀번호 재설정 메일 링크), `mypage.html`(`?tab=likes`), `order.html?id=`(상세·취소·리뷰). 로그인해야 하는 페이지는 `<body data-private="true">`라서 로그아웃하면 홈으로 가요.
 
 ## 키와 환경변수
 
 - 클라이언트 키: `js/checkout.js`의 `TOSS_CLIENT_KEY` (문서용 공개 테스트 키)
 - `TOSS_SECRET_KEY`: 없으면 문서용 공개 테스트 시크릿 키를 써요.
 - `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`: Vercel에만 있어요. 없으면 주문 저장을 건너뛰어요. Supabase는 npm 패키지 없이 `fetch`로 REST API(`/rest/v1/orders`)를 호출해요.
-- Supabase 프로젝트 `ootd-store` (id `bxtfhadwhteljgzmuecy`, 서울). `orders` 테이블은 RLS가 켜져 있고 정책이 없어서 서비스 롤 키로만 접근돼요. 컬럼은 `README.md`에 있어요.
+- Supabase publishable 키(공개): `js/common.js`의 `SUPABASE_KEY`, `serve.ps1`의 `$SupabasePublishableKey`
+- Supabase 프로젝트 `ootd-store` (id `bxtfhadwhteljgzmuecy`, 서울). 표와 권한은 `README.md`에 있어요.
+  - `orders`: RLS만 켜고 정책 없음 → 서비스 롤 키(서버)로만 접근
+  - `profiles`(가입하면 트리거 `on_auth_user_created`가 만듦), `likes`: 본인 것만 읽기·쓰기
+  - `reviews`: 누구나 읽기, 본인만 쓰기. 트리거 `reviews_before_write`가 본인·`DONE` 주문·주문에 있는 상품인지 확인하고, 사이즈와 가린 이름(`mask_name`)을 채워요. 수정할 때는 별점·글만 바뀌어요.
 - 스키마 변경은 Supabase MCP `apply_migration`으로 해요. `orders.status`는 check 제약(`orders_status_check`)이 있어서, 새 상태를 쓰려면 제약부터 고쳐요.
 - `.vercelignore`가 `serve.ps1`, `server-data`, `.claude`, `.mcp.json`을 배포에서 빼요.
 

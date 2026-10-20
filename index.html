@@ -17,6 +17,7 @@
 
   <div id="footer"></div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
   <script src="js/products.js"></script>
   <script src="js/common.js"></script>
   <script>
@@ -33,17 +34,22 @@
         <div class="txt"><small>${h.small}</small><strong>${h.title}</strong></div>
       </a>`).join("");
 
-    document.getElementById("sections").innerHTML = Object.entries(CATEGORIES).map(([key, cat]) => {
-      const top = PRODUCTS.filter((p) => p.cat === key).sort((a, b) => b.likes - a.likes).slice(0, 5);
-      return `
-        <section class="section">
-          <div class="section-title">
-            <h2>${cat.name} 랭킹</h2>
-            <a href="${cat.page}">전체보기 ›</a>
-          </div>
-          <div class="grid">${top.map((p, i) => productCard(p, i + 1)).join("")}</div>
-        </section>`;
-    }).join("");
+    // 좋아요 수가 바뀌면(Supabase에서 새 값을 받으면) 랭킹을 다시 그려요.
+    function drawSections() {
+      document.getElementById("sections").innerHTML = Object.entries(CATEGORIES).map(([key, cat]) => {
+        const top = PRODUCTS.filter((p) => p.cat === key).sort((a, b) => b.likes - a.likes).slice(0, 5);
+        return `
+          <section class="section">
+            <div class="section-title">
+              <h2>${cat.name} 랭킹</h2>
+              <a href="${cat.page}">전체보기 ›</a>
+            </div>
+            <div class="grid">${top.map((p, i) => productCard(p, i + 1)).join("")}</div>
+          </section>`;
+      }).join("");
+    }
+    drawSections();
+    document.addEventListener("stats:change", drawSections);
   </script>
 </body>
 </html>

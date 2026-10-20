@@ -30,6 +30,32 @@ function drawSummary() {
   document.getElementById("pay-btn").textContent = `${won(sum.total)} 결제하기`;
 }
 
+// 로그인한 회원이면 지난 배송지(없으면 가입 정보)로 받는 분 정보를 미리 채워요.
+Auth.ready.then(() => {
+  const p = Auth.profile;
+  if (!Auth.user) {
+    document.getElementById("member-hint").hidden = false;
+    return;
+  }
+  const fill = (id, value) => {
+    const el = document.getElementById(id);
+    if (el && !el.value && value) el.value = value;
+  };
+  fill("c-name", (p && (p.ship_name || p.name)) || "");
+  fill("c-phone", (p && (p.ship_phone || p.phone)) || "");
+  fill("c-email", Auth.user.email);
+  fill("c-addr", (p && p.ship_addr) || "");
+});
+
+// 다음 주문 때 미리 채우도록 이번 배송지를 회원 정보에 남겨요. 실패해도 결제에는 영향이 없어요.
+function rememberShipping({ name, phone, addr }) {
+  if (!Auth.user || !sb) return;
+  sb.from("profiles")
+    .update({ ship_name: name, ship_phone: phone, ship_addr: addr, updated_at: new Date().toISOString() })
+    .eq("id", Auth.user.id)
+    .then(({ error }) => { if (error) console.error("[profile]", error.message); });
+}
+
 function makeOrderId() {
   // 6~64자, 영문 대소문자·숫자·-·_ 만 허용
   return "ORD-" + Date.now() + "-" + Math.random().toString(36).slice(2, 10);
@@ -72,21 +98,21 @@ async function initPayment() {
 
     // 1) 서버에 주문을 먼저 저장해요. 금액은 서버가 상품 가격으로 다시 계산해요.
     //    결제 승인 때 서버가 이 금액과 실제 결제 금액을 비교해서 위변조를 막아요.
+    //    로그인했으면 api()가 토큰을 함께 보내서, 주문이 회원 계정에 연결돼요.
     payBtn.disabled = true;
     try {
-      const res = await fetch("/api/orders", {
+      const data = await api("/api/orders", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId, orderName, items: order.items, customer: { name, phone, email, addr } }),
+        body: { orderId, orderName, items: order.items, customer: { name, phone, email, addr } },
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "주문을 저장하지 못했어요");
       if (data.amount !== sum.total) throw new Error("결제 금액이 변경됐어요. 새로고침 후 다시 시도해 주세요");
     } catch (err) {
       payBtn.disabled = false;
-      return toast(err instanceof TypeError ? "테스트 서버(serve.ps1)에 연결할 수 없어요" : err.message);
+      if (err.code === "UNAUTHORIZED") return toast("로그인이 만료됐어요. 다시 로그인해 주세요");
+      return toast(err.code === "NETWORK_ERROR" ? "테스트 서버(serve.ps1)에 연결할 수 없어요" : err.message);
     }
     payBtn.disabled = false;
+    rememberShipping({ name, phone, addr });
 
     // 결제 완료 화면에 배송 정보를 보여주기 위해 저장해요.
     save("pendingOrder", {

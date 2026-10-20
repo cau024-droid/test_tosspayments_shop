@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>새 비밀번호 | OOTD STORE</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="header"></div>
+
+  <main class="auth-page" id="auth-root"></main>
+
+  <div id="footer"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+  <script src="js/products.js"></script>
+  <script src="js/common.js"></script>
+  <script>
+    // 비밀번호 재설정 메일의 링크로 들어오는 화면이에요. 링크를 누르면 Supabase가 잠깐 로그인시켜 줘요.
+    renderLayout("");
+    const root = document.getElementById("auth-root");
+
+    (async () => {
+      await Auth.ready;
+      if (!Auth.user) {
+        root.innerHTML = `
+          <div class="auth-box">
+            <h1>링크가 만료됐어요</h1>
+            <p class="auth-desc">비밀번호 재설정 링크는 한 번만, 정해진 시간 안에만 쓸 수 있어요.</p>
+            <a class="btn btn-black auth-submit" href="login.html?mode=find">재설정 메일 다시 받기</a>
+          </div>`;
+        return;
+      }
+      root.innerHTML = `
+        <form class="auth-box" id="form" novalidate>
+          <h1>새 비밀번호 정하기</h1>
+          <p class="auth-desc">${escapeHtml(Auth.user.email)}</p>
+          <div class="auth-field"><label for="password">새 비밀번호</label><input id="password" type="password" autocomplete="new-password" placeholder="8자 이상" /></div>
+          <div class="auth-field"><label for="password2">새 비밀번호 확인</label><input id="password2" type="password" autocomplete="new-password" /></div>
+          <button type="submit" class="btn btn-black auth-submit">비밀번호 바꾸기</button>
+        </form>`;
+
+      document.getElementById("form").onsubmit = async (e) => {
+        e.preventDefault();
+        const password = document.getElementById("password").value;
+        if (password.length < 8) return toast("비밀번호는 8자 이상으로 정해 주세요");
+        if (password !== document.getElementById("password2").value) return toast("비밀번호가 서로 달라요");
+        const btn = e.target.querySelector("button[type=submit]");
+        btn.disabled = true;
+        const { error } = await sb.auth.updateUser({ password });
+        btn.disabled = false;
+        if (error) {
+          return toast(/different from the old/i.test(error.message) ? "지금 비밀번호와 다른 비밀번호로 정해 주세요" : "비밀번호를 바꾸지 못했어요. 다시 시도해 주세요");
+        }
+        toast("비밀번호를 바꿨어요");
+        setTimeout(() => location.replace("mypage.html"), 800);
+      };
+    })();
+  </script>
+</body>
+</html>

@@ -16,6 +16,7 @@
 
   <div id="footer"></div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
   <script src="js/products.js"></script>
   <script src="js/common.js"></script>
   <script>
@@ -67,7 +68,14 @@
         </dl>
         ${payment.receipt && payment.receipt.url ? `<p class="notice" style="text-align:left"><a href="${escapeHtml(payment.receipt.url)}" target="_blank" rel="noopener"><u>영수증 보기</u></a></p>` : ""}
         <p class="notice" style="text-align:left">※ 토스페이먼츠 테스트 결제라 실제로 청구되지 않아요.</p>
-        <div class="btns-row"><a class="btn btn-white" href="index.html">홈으로</a><a class="btn btn-black" href="tops.html">쇼핑 계속하기</a></div>`;
+        <div class="btns-row" id="done-btns"><a class="btn btn-white" href="index.html">홈으로</a><a class="btn btn-black" href="tops.html">쇼핑 계속하기</a></div>`;
+
+      // 회원이면 주문 상세로 바로 갈 수 있어요.
+      Auth.ready.then(() => {
+        if (!Auth.user) return;
+        document.getElementById("done-btns").innerHTML =
+          `<a class="btn btn-white" href="tops.html">쇼핑 계속하기</a><a class="btn btn-black" href="order.html?id=${encodeURIComponent(payment.orderId)}">주문 내역 보기</a>`;
+      });
     }
 
     // 결제 승인: 서버가 저장된 주문 금액과 비교한 뒤 시크릿 키로 토스페이먼츠 승인 API를 호출해요.

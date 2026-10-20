@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>마이페이지 | OOTD STORE</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body data-private="true">
+  <div id="header"></div>
+
+  <main class="inner">
+    <div class="page-head">
+      <div class="breadcrumb"><a href="index.html">홈</a> › 마이페이지</div>
+      <h1 class="page-title" id="hello">마이페이지</h1>
+    </div>
+
+    <div class="tabs" id="tabs">
+      <button type="button" class="tab active" data-tab="orders">주문 내역</button>
+      <button type="button" class="tab" data-tab="likes">좋아요한 상품</button>
+    </div>
+
+    <section id="tab-orders">
+      <div id="orders"><p class="empty">주문 내역을 불러오고 있어요.</p></div>
+    </section>
+    <section id="tab-likes" hidden>
+      <div class="grid" id="likes"></div>
+    </section>
+  </main>
+
+  <div id="footer"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+  <script src="js/products.js"></script>
+  <script src="js/common.js"></script>
+  <script src="js/mypage.js"></script>
+</body>
+</html>

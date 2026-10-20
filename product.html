@@ -13,6 +13,7 @@
 
   <div id="footer"></div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
   <script src="js/products.js"></script>
   <script src="js/common.js"></script>
   <script>
@@ -42,8 +43,8 @@
               <span class="now">${off > 0 ? `<span class="discount">${off}%</span>` : ""}${won(p.sale)}</span>
             </div>
             <dl class="d-rows">
-              <div class="d-row"><dt>후기</dt><dd>★ ${p.rating} · ${p.reviews.toLocaleString()}개</dd></div>
-              <div class="d-row"><dt>좋아요</dt><dd>♥ ${p.likes.toLocaleString()}</dd></div>
+              <div class="d-row"><dt>후기</dt><dd id="d-reviews"></dd></div>
+              <div class="d-row"><dt>좋아요</dt><dd id="d-likes"></dd></div>
               <div class="d-row"><dt>배송</dt><dd>${p.free ? "무료배송 · " : "배송비 3,000원 · "}오늘 출발 (오후 2시 전 주문)</dd></div>
             </dl>
 
@@ -67,7 +68,75 @@
               <button type="button" class="btn btn-black" id="buy-now">구매하기</button>
             </div>
           </div>
-        </div>`;
+        </div>
+        <section class="reviews" id="reviews">
+          <div class="section-title"><h2 id="reviews-title">리뷰</h2></div>
+          <div id="review-list"><p class="empty">리뷰를 불러오고 있어요.</p></div>
+        </section>`;
+
+      // 실제 좋아요 수·리뷰 수·평균 별점 (Stats 가 새 값을 받으면 다시 그려요)
+      const drawStats = () => {
+        document.getElementById("d-reviews").textContent = p.reviews ? `★ ${p.rating} · ${p.reviews.toLocaleString()}개` : "아직 리뷰가 없어요";
+        document.getElementById("d-likes").textContent = `♥ ${p.likes.toLocaleString()}`;
+      };
+      drawStats();
+      document.addEventListener("stats:change", drawStats);
+
+      // ---- 리뷰 (최신순). 리뷰는 실제로 산 회원만 주문 상세에서 쓸 수 있어요. ----
+      let reviews = [];
+      const listEl = document.getElementById("review-list");
+      const drawReviews = () => {
+        const mineId = Auth.user ? Auth.user.id : null;
+        const avg = reviews.length ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1) : null;
+        document.getElementById("reviews-title").innerHTML =
+          `리뷰 ${reviews.length.toLocaleString()}` + (avg ? ` <span class="review-avg">★ ${avg}</span>` : "");
+        listEl.innerHTML = reviews.length
+          ? reviews.map((r) => reviewHtml(r, r.user_id === mineId)).join("")
+          : `<p class="empty" style="padding:40px 0">아직 리뷰가 없어요. 이 상품을 사셨다면 마이페이지 › 주문 상세에서 리뷰를 남겨 주세요.</p>`;
+      };
+      const loadReviews = async () => {
+        if (!sb) return (listEl.innerHTML = `<p class="empty" style="padding:40px 0">리뷰를 불러오지 못했어요.</p>`);
+        const { data, error } = await sb.from("reviews").select("*").eq("product_id", p.id).order("created_at", { ascending: false }).limit(100);
+        if (error) return (listEl.innerHTML = `<p class="empty" style="padding:40px 0">리뷰를 불러오지 못했어요.</p>`);
+        reviews = data;
+        drawReviews();
+      };
+      loadReviews();
+      document.addEventListener("auth:change", drawReviews);
+
+      // 내 리뷰 수정·삭제
+      listEl.addEventListener("click", async (e) => {
+        const btn = e.target.closest("[data-act]");
+        if (!btn) return;
+        const el = btn.closest("[data-review]");
+        const r = reviews.find((x) => String(x.id) === el.dataset.review);
+        if (!r) return;
+        if (btn.dataset.act === "delete") {
+          if (!confirm("리뷰를 지울까요?")) return;
+          try {
+            await Reviews.remove(r.id);
+            reviews = reviews.filter((x) => x !== r);
+            drawReviews();
+            toast("리뷰를 지웠어요");
+          } catch (err) {
+            toast(err.message);
+          }
+          return;
+        }
+        if (btn.dataset.act === "edit") {
+          el.innerHTML = reviewFormHtml(r);
+          bindReviewForm(el.querySelector("form"), {
+            rating: r.rating,
+            onCancel: drawReviews,
+            onSubmit: async ({ rating, content }) => {
+              const saved = await Reviews.save({ id: r.id, rating, content });
+              reviews = reviews.map((x) => (x.id === r.id ? saved : x));
+              drawReviews();
+              toast("리뷰를 고쳤어요");
+            },
+          });
+        }
+      });
 
       const qtyInput = document.getElementById("qty");
       const setQty = (n) => {
@@ -90,8 +159,11 @@
       likeBtn.onclick = () => {
         const on = Likes.toggle(p.id);
         likeBtn.textContent = on ? "♥" : "♡";
+        drawStats();
         toast(on ? "좋아요에 추가했어요" : "좋아요를 취소했어요");
       };
+      // 로그인해서 계정의 좋아요를 받아오면 하트를 맞춰요.
+      document.addEventListener("likes:change", () => { likeBtn.textContent = Likes.has(p.id) ? "♥" : "♡"; });
 
       const needSize = () => {
         if (state.size) return false;

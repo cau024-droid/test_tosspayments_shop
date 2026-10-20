@@ -1,4 +1,4 @@
-// 상품 데이터 (퍼블리싱용 더미 데이터)
+// 상품 데이터 (퍼블리싱용 더미 데이터). 좋아요 수·리뷰 수·별점은 Supabase에서 실제 값을 읽어요. (common.js 의 Stats)
 const CATEGORIES = {
   top:   { name: "상의", page: "tops.html",  subs: ["반소매 티셔츠", "맨투맨", "후드 티셔츠", "셔츠"],      sizes: ["S", "M", "L", "XL", "XXL"] },
   shoes: { name: "신발", page: "shoes.html", subs: ["스니커즈", "러닝화", "로퍼", "부츠"],               sizes: ["230", "240", "250", "260", "270", "280", "290"] },
@@ -7,38 +7,38 @@ const CATEGORIES = {
 
 const PRODUCTS = [
   // ---- 상의 ----
-  { id: "T001", cat: "top", sub: "반소매 티셔츠", art: "tee",    color: "#ffffff", bg: "#ececec", brand: "PLAINWORKS", name: "에센셜 오버핏 반소매 티셔츠 화이트",       price: 39000, sale: 29000, likes: 18420, rating: 4.9, reviews: 9821, free: true },
-  { id: "T002", cat: "top", sub: "반소매 티셔츠", art: "tee",    color: "#1d1d1d", bg: "#e6e6e6", brand: "OFFDUTY",    name: "헤비웨이트 로고 반소매 티셔츠 블랙",       price: 45000, sale: 35100, likes: 9210,  rating: 4.8, reviews: 3120, free: true },
-  { id: "T003", cat: "top", sub: "맨투맨",       art: "sweat",  color: "#7d8a9c", bg: "#e9ecf0", brand: "NORTHLAB",   name: "브러시드 기모 크루넥 스웨트셔츠 블루그레이", price: 69000, sale: 48300, likes: 12044, rating: 4.8, reviews: 4410, free: true },
-  { id: "T004", cat: "top", sub: "맨투맨",       art: "sweat",  color: "#c9b79c", bg: "#f2ede6", brand: "SLOWMOVE",   name: "피그먼트 다잉 맨투맨 샌드베이지",          price: 59000, sale: 59000, likes: 4302,  rating: 4.7, reviews: 1290, free: false },
-  { id: "T005", cat: "top", sub: "후드 티셔츠",  art: "hoodie", color: "#3b4a3f", bg: "#e7ebe7", brand: "MODULE",     name: "투웨이 지퍼 후드 집업 포레스트",           price: 89000, sale: 62300, likes: 15890, rating: 4.9, reviews: 6022, free: true },
-  { id: "T006", cat: "top", sub: "후드 티셔츠",  art: "hoodie", color: "#9e9e9e", bg: "#efefef", brand: "PLAINWORKS", name: "릴랙스드 핏 스웻 후디 멜란지그레이",       price: 72000, sale: 57600, likes: 7710,  rating: 4.8, reviews: 2841, free: true },
-  { id: "T007", cat: "top", sub: "셔츠",         art: "shirt",  color: "#bcd3ea", bg: "#edf2f7", brand: "HAUS",       name: "옥스포드 버튼다운 셔츠 스카이블루",        price: 65000, sale: 45500, likes: 6620,  rating: 4.7, reviews: 1980, free: false },
-  { id: "T008", cat: "top", sub: "셔츠",         art: "shirt",  color: "#f3efe4", bg: "#ecebe6", brand: "ROUTE 9",    name: "린넨 블렌드 오버 셔츠 아이보리",           price: 79000, sale: 55300, likes: 3988,  rating: 4.6, reviews: 842,  free: true },
-  { id: "T009", cat: "top", sub: "반소매 티셔츠", art: "tee",    color: "#8a3b3b", bg: "#f0e8e8", brand: "KICKSTAND",  name: "빈티지 워싱 그래픽 티셔츠 버건디",         price: 42000, sale: 29400, likes: 2940,  rating: 4.7, reviews: 610,  free: false },
-  { id: "T010", cat: "top", sub: "맨투맨",       art: "sweat",  color: "#22304a", bg: "#e5e8ee", brand: "OFFDUTY",    name: "아치 로고 스웨트셔츠 네이비",              price: 68000, sale: 51000, likes: 8811,  rating: 4.8, reviews: 2370, free: true },
+  { id: "T001", cat: "top", sub: "반소매 티셔츠", art: "tee",    color: "#ffffff", bg: "#ececec", brand: "PLAINWORKS", name: "에센셜 오버핏 반소매 티셔츠 화이트",       price: 39000, sale: 29000, free: true },
+  { id: "T002", cat: "top", sub: "반소매 티셔츠", art: "tee",    color: "#1d1d1d", bg: "#e6e6e6", brand: "OFFDUTY",    name: "헤비웨이트 로고 반소매 티셔츠 블랙",       price: 45000, sale: 35100, free: true },
+  { id: "T003", cat: "top", sub: "맨투맨",       art: "sweat",  color: "#7d8a9c", bg: "#e9ecf0", brand: "NORTHLAB",   name: "브러시드 기모 크루넥 스웨트셔츠 블루그레이", price: 69000, sale: 48300, free: true },
+  { id: "T004", cat: "top", sub: "맨투맨",       art: "sweat",  color: "#c9b79c", bg: "#f2ede6", brand: "SLOWMOVE",   name: "피그먼트 다잉 맨투맨 샌드베이지",          price: 59000, sale: 59000, free: false },
+  { id: "T005", cat: "top", sub: "후드 티셔츠",  art: "hoodie", color: "#3b4a3f", bg: "#e7ebe7", brand: "MODULE",     name: "투웨이 지퍼 후드 집업 포레스트",           price: 89000, sale: 62300, free: true },
+  { id: "T006", cat: "top", sub: "후드 티셔츠",  art: "hoodie", color: "#9e9e9e", bg: "#efefef", brand: "PLAINWORKS", name: "릴랙스드 핏 스웻 후디 멜란지그레이",       price: 72000, sale: 57600, free: true },
+  { id: "T007", cat: "top", sub: "셔츠",         art: "shirt",  color: "#bcd3ea", bg: "#edf2f7", brand: "HAUS",       name: "옥스포드 버튼다운 셔츠 스카이블루",        price: 65000, sale: 45500, free: false },
+  { id: "T008", cat: "top", sub: "셔츠",         art: "shirt",  color: "#f3efe4", bg: "#ecebe6", brand: "ROUTE 9",    name: "린넨 블렌드 오버 셔츠 아이보리",           price: 79000, sale: 55300, free: true },
+  { id: "T009", cat: "top", sub: "반소매 티셔츠", art: "tee",    color: "#8a3b3b", bg: "#f0e8e8", brand: "KICKSTAND",  name: "빈티지 워싱 그래픽 티셔츠 버건디",         price: 42000, sale: 29400, free: false },
+  { id: "T010", cat: "top", sub: "맨투맨",       art: "sweat",  color: "#22304a", bg: "#e5e8ee", brand: "OFFDUTY",    name: "아치 로고 스웨트셔츠 네이비",              price: 68000, sale: 51000, free: true },
 
   // ---- 신발 ----
-  { id: "S001", cat: "shoes", sub: "스니커즈", art: "sneaker", color: "#f5f5f5", bg: "#e9e9e9", brand: "KICKSTAND", name: "클래식 로우 레더 스니커즈 올화이트",      price: 129000, sale: 99000,  likes: 22310, rating: 4.9, reviews: 11203, free: true },
-  { id: "S002", cat: "shoes", sub: "스니커즈", art: "sneaker", color: "#2b2b2b", bg: "#e4e4e4", brand: "MODULE",    name: "스웨이드 컵솔 스니커즈 블랙",             price: 109000, sale: 87200,  likes: 8740,  rating: 4.8, reviews: 3001,  free: true },
-  { id: "S003", cat: "shoes", sub: "러닝화",   art: "runner",  color: "#ff6b3d", bg: "#f6ebe6", brand: "ROUTE 9",   name: "에어 쿠션 데일리 러닝화 오렌지",          price: 159000, sale: 119000, likes: 11025, rating: 4.8, reviews: 4512,  free: true },
-  { id: "S004", cat: "shoes", sub: "러닝화",   art: "runner",  color: "#5a6b7d", bg: "#e8ecef", brand: "NORTHLAB",  name: "트레일 러너 GTX 스톰그레이",              price: 189000, sale: 151200, likes: 5620,  rating: 4.7, reviews: 1532,  free: true },
-  { id: "S005", cat: "shoes", sub: "로퍼",     art: "loafer",  color: "#2a1e18", bg: "#ece8e4", brand: "HAUS",      name: "페니 로퍼 폴리시드 레더 다크브라운",      price: 168000, sale: 134400, likes: 6730,  rating: 4.8, reviews: 2290,  free: true },
-  { id: "S006", cat: "shoes", sub: "로퍼",     art: "loafer",  color: "#111111", bg: "#e7e7e7", brand: "SLOWMOVE",  name: "청키 솔 로퍼 블랙",                       price: 139000, sale: 139000, likes: 3310,  rating: 4.6, reviews: 701,   free: false },
-  { id: "S007", cat: "shoes", sub: "부츠",     art: "boot",    color: "#8a5a32", bg: "#f1ebe5", brand: "NORTHLAB",  name: "워커 레이스업 부츠 휘트",                 price: 219000, sale: 175200, likes: 9902,  rating: 4.9, reviews: 3880,  free: true },
-  { id: "S008", cat: "shoes", sub: "부츠",     art: "boot",    color: "#1b1b1b", bg: "#e5e5e5", brand: "OFFDUTY",   name: "사이드 고어 첼시 부츠 블랙",              price: 189000, sale: 132300, likes: 7120,  rating: 4.8, reviews: 2017,  free: true },
-  { id: "S009", cat: "shoes", sub: "스니커즈", art: "sneaker", color: "#cfd8c4", bg: "#eef1ea", brand: "PLAINWORKS", name: "캔버스 하이브리드 스니커즈 세이지",      price: 89000,  sale: 62300,  likes: 2840,  rating: 4.7, reviews: 588,   free: false },
+  { id: "S001", cat: "shoes", sub: "스니커즈", art: "sneaker", color: "#f5f5f5", bg: "#e9e9e9", brand: "KICKSTAND", name: "클래식 로우 레더 스니커즈 올화이트",      price: 129000, sale: 99000,  free: true },
+  { id: "S002", cat: "shoes", sub: "스니커즈", art: "sneaker", color: "#2b2b2b", bg: "#e4e4e4", brand: "MODULE",    name: "스웨이드 컵솔 스니커즈 블랙",             price: 109000, sale: 87200,  free: true },
+  { id: "S003", cat: "shoes", sub: "러닝화",   art: "runner",  color: "#ff6b3d", bg: "#f6ebe6", brand: "ROUTE 9",   name: "에어 쿠션 데일리 러닝화 오렌지",          price: 159000, sale: 119000, free: true },
+  { id: "S004", cat: "shoes", sub: "러닝화",   art: "runner",  color: "#5a6b7d", bg: "#e8ecef", brand: "NORTHLAB",  name: "트레일 러너 GTX 스톰그레이",              price: 189000, sale: 151200, free: true },
+  { id: "S005", cat: "shoes", sub: "로퍼",     art: "loafer",  color: "#2a1e18", bg: "#ece8e4", brand: "HAUS",      name: "페니 로퍼 폴리시드 레더 다크브라운",      price: 168000, sale: 134400, free: true },
+  { id: "S006", cat: "shoes", sub: "로퍼",     art: "loafer",  color: "#111111", bg: "#e7e7e7", brand: "SLOWMOVE",  name: "청키 솔 로퍼 블랙",                       price: 139000, sale: 139000, free: false },
+  { id: "S007", cat: "shoes", sub: "부츠",     art: "boot",    color: "#8a5a32", bg: "#f1ebe5", brand: "NORTHLAB",  name: "워커 레이스업 부츠 휘트",                 price: 219000, sale: 175200, free: true },
+  { id: "S008", cat: "shoes", sub: "부츠",     art: "boot",    color: "#1b1b1b", bg: "#e5e5e5", brand: "OFFDUTY",   name: "사이드 고어 첼시 부츠 블랙",              price: 189000, sale: 132300, free: true },
+  { id: "S009", cat: "shoes", sub: "스니커즈", art: "sneaker", color: "#cfd8c4", bg: "#eef1ea", brand: "PLAINWORKS", name: "캔버스 하이브리드 스니커즈 세이지",      price: 89000,  sale: 62300,  free: false },
 
   // ---- 바지 ----
-  { id: "P001", cat: "pants", sub: "데님 팬츠",     art: "pants",  color: "#3e5f8a", bg: "#e7ecf2", brand: "ROUTE 9",    name: "와이드 스트레이트 데님 팬츠 미드블루",   price: 79000, sale: 55300, likes: 19840, rating: 4.9, reviews: 8710, free: true },
-  { id: "P002", cat: "pants", sub: "데님 팬츠",     art: "pants",  color: "#1f2a3a", bg: "#e4e7ec", brand: "MODULE",     name: "생지 셀비지 데님 팬츠 로우",            price: 129000, sale: 103200, likes: 6620, rating: 4.8, reviews: 1820, free: true },
-  { id: "P003", cat: "pants", sub: "슬랙스",        art: "slacks", color: "#2d2d2d", bg: "#e8e8e8", brand: "HAUS",       name: "원턱 와이드 슬랙스 차콜",               price: 59000, sale: 41300, likes: 24110, rating: 4.9, reviews: 13520, free: true },
-  { id: "P004", cat: "pants", sub: "슬랙스",        art: "slacks", color: "#bfae95", bg: "#f2eee8", brand: "SLOWMOVE",   name: "세미 와이드 크림 슬랙스 베이지",        price: 55000, sale: 55000, likes: 4430,  rating: 4.7, reviews: 1203, free: false },
-  { id: "P005", cat: "pants", sub: "트레이닝 팬츠", art: "jogger", color: "#4a4a4a", bg: "#ebebeb", brand: "PLAINWORKS", name: "스웨트 조거 팬츠 차콜그레이",           price: 49000, sale: 34300, likes: 9921,  rating: 4.8, reviews: 3398, free: true },
-  { id: "P006", cat: "pants", sub: "트레이닝 팬츠", art: "jogger", color: "#1a2b4c", bg: "#e5e8ef", brand: "KICKSTAND",  name: "사이드 라인 트랙 팬츠 네이비",          price: 69000, sale: 48300, likes: 5112,  rating: 4.7, reviews: 1407, free: true },
-  { id: "P007", cat: "pants", sub: "카고 팬츠",     art: "cargo",  color: "#5b6142", bg: "#ecede6", brand: "NORTHLAB",   name: "나일론 파라슈트 카고 팬츠 올리브",      price: 89000, sale: 62300, likes: 13840, rating: 4.8, reviews: 4890, free: true },
-  { id: "P008", cat: "pants", sub: "카고 팬츠",     art: "cargo",  color: "#c8bca6", bg: "#f1eee8", brand: "OFFDUTY",    name: "코튼 워크 카고 팬츠 스톤",              price: 82000, sale: 65600, likes: 3620,  rating: 4.6, reviews: 702,  free: false },
-  { id: "P009", cat: "pants", sub: "데님 팬츠",     art: "pants",  color: "#9bb3cc", bg: "#edf1f5", brand: "SLOWMOVE",   name: "라이트 워싱 루즈핏 데님 스카이",        price: 75000, sale: 52500, likes: 2730,  rating: 4.7, reviews: 520,  free: true },
+  { id: "P001", cat: "pants", sub: "데님 팬츠",     art: "pants",  color: "#3e5f8a", bg: "#e7ecf2", brand: "ROUTE 9",    name: "와이드 스트레이트 데님 팬츠 미드블루",   price: 79000, sale: 55300, free: true },
+  { id: "P002", cat: "pants", sub: "데님 팬츠",     art: "pants",  color: "#1f2a3a", bg: "#e4e7ec", brand: "MODULE",     name: "생지 셀비지 데님 팬츠 로우",            price: 129000, sale: 103200, free: true },
+  { id: "P003", cat: "pants", sub: "슬랙스",        art: "slacks", color: "#2d2d2d", bg: "#e8e8e8", brand: "HAUS",       name: "원턱 와이드 슬랙스 차콜",               price: 59000, sale: 41300, free: true },
+  { id: "P004", cat: "pants", sub: "슬랙스",        art: "slacks", color: "#bfae95", bg: "#f2eee8", brand: "SLOWMOVE",   name: "세미 와이드 크림 슬랙스 베이지",        price: 55000, sale: 55000, free: false },
+  { id: "P005", cat: "pants", sub: "트레이닝 팬츠", art: "jogger", color: "#4a4a4a", bg: "#ebebeb", brand: "PLAINWORKS", name: "스웨트 조거 팬츠 차콜그레이",           price: 49000, sale: 34300, free: true },
+  { id: "P006", cat: "pants", sub: "트레이닝 팬츠", art: "jogger", color: "#1a2b4c", bg: "#e5e8ef", brand: "KICKSTAND",  name: "사이드 라인 트랙 팬츠 네이비",          price: 69000, sale: 48300, free: true },
+  { id: "P007", cat: "pants", sub: "카고 팬츠",     art: "cargo",  color: "#5b6142", bg: "#ecede6", brand: "NORTHLAB",   name: "나일론 파라슈트 카고 팬츠 올리브",      price: 89000, sale: 62300, free: true },
+  { id: "P008", cat: "pants", sub: "카고 팬츠",     art: "cargo",  color: "#c8bca6", bg: "#f1eee8", brand: "OFFDUTY",    name: "코튼 워크 카고 팬츠 스톤",              price: 82000, sale: 65600, free: false },
+  { id: "P009", cat: "pants", sub: "데님 팬츠",     art: "pants",  color: "#9bb3cc", bg: "#edf1f5", brand: "SLOWMOVE",   name: "라이트 워싱 루즈핏 데님 스카이",        price: 75000, sale: 52500, free: true },
 ];
 
 // ---- 상품 일러스트 (이미지 대신 SVG) ----

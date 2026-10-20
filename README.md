@@ -20,13 +20,21 @@ powershell -ExecutionPolicy Bypass -File serve.ps1
 | `cart.html` | 장바구니 |
 | `checkout.html` | 주문서 + 토스페이먼츠 결제위젯 |
 | `success.html` / `fail.html` | 결제 완료(서버 승인) / 실패 |
+| `login.html` | 로그인 · 회원가입(`?mode=signup`) · 비밀번호 찾기(`?mode=find`) |
+| `reset.html` | 비밀번호 재설정 메일의 링크로 들어와서 새 비밀번호 정하기 |
+| `mypage.html` | 내 주문 내역(결제 안 된 주문은 따로) · 좋아요한 상품 (회원만) |
+| `order.html?id=` | 주문 상세 · 주문 취소(환불) · 리뷰 쓰기 (회원 본인 주문만) |
 
 ## 테스트 서버 API (`serve.ps1`)
 
 - `POST /api/orders` — 주문을 "결제 대기"(`PENDING`)로 저장해요. 받는 분 정보도 함께 받아요. 금액은 서버가 `js/products.js`의 가격으로 다시 계산해요.
 - `POST /api/confirm` — 저장된 금액과 비교한 뒤 시크릿 키로 토스페이먼츠 결제 승인 API를 호출해요.
 - `POST /api/fail` — 결제창을 닫았거나 결제에 실패한 이유를 주문에 남겨요. 이미 결제된 주문은 바꾸지 않아요.
+- `GET /api/my-orders` — 로그인한 회원의 주문 목록. `Authorization: Bearer <로그인 토큰>`이 필요해요.
+- `POST /api/cancel` — 회원 본인의 결제 완료 주문을 전체 취소(환불)해요. 결제 후 7일 이내만 돼요.
 - `GET /api/orders` — 저장된 주문 목록 (테스트용)
+
+`POST /api/orders`에 로그인 토큰을 함께 보내면 주문이 회원 계정에 연결돼요. 토큰이 없으면 비회원 주문이에요.
 
 ## Vercel 배포
 
@@ -55,8 +63,32 @@ powershell -ExecutionPolicy Bypass -File serve.ps1
 | `approved_at` | 승인 시각 |
 | `payment` | 승인 API 응답 전체 (JSON) |
 | `created_at` / `updated_at` | 처음 저장한 시각 / 마지막으로 바뀐 시각 |
+| `user_id` | 주문한 회원 (비회원 주문은 비어 있음) |
+| `cancel_reason` / `canceled_at` / `canceled_amount` | 취소 이유 / 취소 시각 / 환불 금액 |
 
-RLS가 켜져 있고 정책이 없어서 공개(anon) 키로는 읽거나 쓸 수 없어요. 서버만 서비스 롤 키로 접근해요.
+RLS가 켜져 있고 정책이 없어서 공개 키로는 읽거나 쓸 수 없어요. 서버만 서비스 롤 키로 접근해요.
+
+## Supabase 회원·좋아요·리뷰
+
+로그인은 Supabase Auth(이메일 + 비밀번호)를 써요. 브라우저는 공개(publishable) 키로 Supabase에 접속하고, 아래 표는 RLS로 지켜요.
+
+| 표 | 내용 | 누가 볼 수 있나요 |
+|---|---|---|
+| `profiles` | 이름, 휴대폰, 지난 배송지(`ship_name`·`ship_phone`·`ship_addr`). 가입하면 자동으로 만들어져요. | 본인만 읽고 고쳐요 |
+| `likes` | 회원이 좋아요한 상품 (`user_id`, `product_id`) | 본인만 읽고 쓰고 지워요 |
+| `reviews` | 별점(1~5), 글(10~500자), 구매 사이즈, 가린 이름(김*수). 주문 상품마다 하나. | 누구나 읽어요. 쓰기·고치기·지우기는 본인만 |
+
+- 리뷰는 DB가 한 번 더 확인해요: 내 주문인지, 결제 완료(`DONE`)인지, 주문에 그 상품이 있는지. 취소된 주문에는 쓸 수 없어요.
+- 상품별 좋아요 수·리뷰 수·평균 별점은 `product_stats()` 함수로 누구나 볼 수 있어요. 누가 눌렀는지는 보이지 않아요.
+
+### Supabase 대시보드에서 해야 할 설정
+
+가입 확인 메일과 비밀번호 재설정 메일의 링크가 우리 사이트로 돌아오려면 주소를 등록해야 해요.
+
+1. **Authentication → URL Configuration**
+   - Site URL: `https://testtosspaymentsshop-taupe.vercel.app`
+   - Redirect URLs: `https://testtosspaymentsshop-taupe.vercel.app/**`, `http://localhost:8080/**`
+2. Supabase 기본 메일 발송은 시간당 보낼 수 있는 수가 적고, 조직(팀) 멤버 이메일로만 보내져요. 손님에게 실제로 보내려면 **Authentication → Emails → SMTP Settings**에 메일 서비스를 연결해야 해요.
 - `serve.ps1`, `.claude`, `.mcp.json`은 `.vercelignore`로 배포에서 제외돼요.
 
 ## 키

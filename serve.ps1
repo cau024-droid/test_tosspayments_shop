@@ -3,7 +3,10 @@
 #   - POST /api/orders   : calculates the amount on the server and saves the order as PENDING
 #   - POST /api/confirm  : checks the amount and calls the Toss Payments confirm API with the secret key
 #   - POST /api/fail     : records why a payment did not complete (FAILED / USER_CANCELED)
+#   - GET  /api/my-orders: lists the logged-in member's orders
+#   - POST /api/cancel   : cancels (refunds) the logged-in member's paid order
 #   - GET  /api/orders   : lists saved orders (for testing)
+#   Members log in with Supabase Auth in the browser; this server checks the token with Supabase.
 #
 # Usage: powershell -ExecutionPolicy Bypass -File serve.ps1  ->  http://localhost:8080
 #        Use your own test secret key:  $env:TOSS_SECRET_KEY = 'test_gsk_...'
@@ -21,6 +24,20 @@ $FreeShippingMin = 30000
 $ShippingFee = 3000
 # Error codes when the customer closes the payment window (widget: USER_CANCEL, failUrl: PAY_PROCESS_CANCELED)
 $CancelCodes = @('USER_CANCEL', 'PAY_PROCESS_CANCELED')
+
+# Supabase Auth (same public values as js/common.js). Used only to check login tokens.
+$SupabaseUrl = 'https://bxtfhadwhteljgzmuecy.supabase.co'
+$SupabasePublishableKey = 'sb_publishable_0EP4VpNtaQIGY6W4cUFhWw_vvyxzeB4'
+# Same rules as lib/shop.js
+$CancelDays = 7
+# Cancel reasons, written as \u escapes because Windows PowerShell 5.1 reads this file as ANSI
+# (dansun byeonsim / wrong size / will buy another product / other)
+$CancelReasons = @(
+  '\ub2e8\uc21c \ubcc0\uc2ec',
+  '\uc0ac\uc774\uc988\ub97c \uc798\ubabb \uace8\ub790\uc5b4\uc694',
+  '\ub2e4\ub978 \uc0c1\ud488\uc73c\ub85c \ub2e4\uc2dc \uc0b4\uac8c\uc694',
+  '\uae30\ud0c0'
+) | ForEach-Object { [regex]::Unescape($_) }
 
 $root = $PSScriptRoot
 $dataDir = Join-Path $root 'server-data'
@@ -95,12 +112,13 @@ function Get-OrderAmount($items) {
   return $subtotal + $shipping
 }
 
-function Invoke-Toss([string]$path, $body) {
+function Invoke-Toss([string]$path, $body, [string]$idempotencyKey) {
   $auth = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($SecretKey + ':'))
   $req = [Net.HttpWebRequest]::Create('https://api.tosspayments.com' + $path)
   $req.Method = 'POST'
   $req.ContentType = 'application/json'
   $req.Headers.Add('Authorization', 'Basic ' + $auth)
+  if ($idempotencyKey) { $req.Headers.Add('Idempotency-Key', $idempotencyKey) }
   $bytes = [Text.Encoding]::UTF8.GetBytes(($body | ConvertTo-Json -Compress))
   $stream = $req.GetRequestStream()
   $stream.Write($bytes, 0, $bytes.Length)
@@ -140,6 +158,58 @@ function Get-Text($value, [int]$max) {
   return $s
 }
 
+# Checks the browser's login token (Authorization: Bearer ...) with Supabase Auth.
+# Returns $null for guests and throws 'UNAUTHORIZED' for a bad or expired token.
+function Get-AuthUser($ctx) {
+  $header = [string]$ctx.Request.Headers['Authorization']
+  if (-not $header.StartsWith('Bearer ')) { return $null }
+  $req = [Net.HttpWebRequest]::Create("$SupabaseUrl/auth/v1/user")
+  $req.Headers.Add('apikey', $SupabasePublishableKey)
+  $req.Headers.Add('Authorization', $header)
+  try {
+    $res = $req.GetResponse()
+  } catch [Net.WebException] {
+    if ($_.Exception.Response) { $_.Exception.Response.Close(); throw 'UNAUTHORIZED' }
+    throw
+  }
+  $reader = New-Object IO.StreamReader($res.GetResponseStream(), [Text.Encoding]::UTF8)
+  $user = $reader.ReadToEnd() | ConvertFrom-Json
+  $reader.Close()
+  $res.Close()
+  return @{ id = [string]$user.id; email = [string]$user.email }
+}
+
+# Members can cancel a paid order themselves within 7 days of payment.
+function Test-Cancelable($order) {
+  if ($order.status -ne 'DONE' -or -not $order.payment -or -not $order.payment.approvedAt) { return $false }
+  $approved = [DateTimeOffset]::Parse([string]$order.payment.approvedAt)
+  return ([DateTimeOffset]::Now - $approved).TotalDays -le $CancelDays
+}
+
+# Same shape as lib/shop.js toMyOrder
+function ConvertTo-MyOrder($order) {
+  $p = $order.payment
+  return [ordered]@{
+    orderId        = $order.orderId
+    orderName      = $order.orderName
+    amount         = $order.amount
+    items          = @($order.items)
+    status         = $order.status
+    createdAt      = $order.createdAt
+    approvedAt     = if ($p) { $p.approvedAt } else { $null }
+    method         = if ($p) { $p.method } else { $null }
+    card           = if ($p -and $p.card) { $p.card.number } else { $null }
+    receiptUrl     = if ($p -and $p.receipt) { $p.receipt.url } else { $null }
+    customer       = $order.customer
+    failCode       = $order.failCode
+    failMessage    = $order.failMessage
+    cancelReason   = $order.cancelReason
+    canceledAt     = $order.canceledAt
+    canceledAmount = $order.canceledAmount
+    cancelable     = Test-Cancelable $order
+  }
+}
+
 # ---------- API routes ----------
 function Handle-CreateOrder($ctx) {
   $body = Read-Body $ctx
@@ -159,8 +229,15 @@ function Handle-CreateOrder($ctx) {
   } catch {
     return Send-Error $ctx 400 'INVALID_CUSTOMER' $_.Exception.Message
   }
+  # Logged-in members get the order linked to their account. Guests can still pay.
+  try {
+    $user = Get-AuthUser $ctx
+  } catch {
+    return Send-Error $ctx 401 'UNAUTHORIZED' 'Invalid or expired login'
+  }
 
   $orders[$body.orderId] = [ordered]@{
+    userId      = if ($user) { $user.id } else { $null }
     orderId     = $body.orderId
     orderName   = Get-Text $body.orderName 200
     amount      = $amount
@@ -239,6 +316,57 @@ function Handle-Fail($ctx) {
   Send-Json $ctx 200 (@{ orderId = $body.orderId; status = $status; updated = $updated } | ConvertTo-Json -Compress)
 }
 
+function Get-MemberOrNull($ctx) {
+  try { $user = Get-AuthUser $ctx } catch { $user = $null }
+  if (-not $user) { Send-Error $ctx 401 'UNAUTHORIZED' 'Login required' }
+  return $user
+}
+
+function Handle-MyOrders($ctx) {
+  $user = Get-MemberOrNull $ctx
+  if (-not $user) { return }
+  $list = @($orders.Values | Where-Object { $_.userId -eq $user.id } | Sort-Object { $_.createdAt } -Descending |
+    ForEach-Object { ConvertTo-MyOrder $_ })
+  Send-Json $ctx 200 (@{ orders = $list } | ConvertTo-Json -Depth 10 -Compress)
+}
+
+function Handle-Cancel($ctx) {
+  $user = Get-MemberOrNull $ctx
+  if (-not $user) { return }
+  $body = Read-Body $ctx
+  if (-not $body -or $body.orderId -notmatch '^[A-Za-z0-9_-]{6,64}$') {
+    return Send-Error $ctx 400 'INVALID_ORDER_ID' 'Invalid orderId'
+  }
+  if ($CancelReasons -notcontains [string]$body.reason) {
+    return Send-Error $ctx 400 'INVALID_REASON' 'Choose a cancel reason'
+  }
+  $order = $orders[[string]$body.orderId]
+  # Do not reveal other members' orders.
+  if (-not $order -or $order.userId -ne $user.id) { return Send-Error $ctx 404 'ORDER_NOT_FOUND' 'Order not found' }
+  if ($order.status -eq 'CANCELED' -or $order.status -eq 'PARTIAL_CANCELED') {
+    return Send-Error $ctx 409 'ALREADY_CANCELED' 'This order is already canceled'
+  }
+  if (-not (Test-Cancelable $order)) {
+    return Send-Error $ctx 400 'NOT_CANCELABLE' 'This order can no longer be canceled'
+  }
+
+  $path = '/v1/payments/' + [Uri]::EscapeDataString([string]$order.payment.paymentKey) + '/cancel'
+  $result = Invoke-Toss $path @{ cancelReason = [string]$body.reason } "cancel-$($order.orderId)"
+  Write-Host "[cancel] $($order.orderId) -> $($result.status)"
+  if ($result.status -ne 200) { return Send-Json $ctx $result.status $result.body }
+
+  $res = $result.body | ConvertFrom-Json
+  $cancels = @($res.cancels)
+  $order.status = $res.status
+  $order.payment = $res
+  $order.cancelReason = [string]$body.reason
+  $order.canceledAt = if ($cancels.Count) { $cancels[-1].canceledAt } else { (Get-Date).ToString('o') }
+  $order.canceledAmount = ($cancels | Measure-Object -Property cancelAmount -Sum).Sum
+  $order.updatedAt = (Get-Date).ToString('o')
+  Save-Orders
+  Send-Json $ctx 200 (ConvertTo-MyOrder $order | ConvertTo-Json -Depth 10 -Compress)
+}
+
 # ---------- server ----------
 $listener = New-Object System.Net.HttpListener
 $listener.Prefixes.Add("http://localhost:$Port/")
@@ -257,6 +385,8 @@ try {
       if ($path -eq 'api/orders' -and $method -eq 'GET')  { Send-Json $ctx 200 (ConvertTo-Json @($orders.Values) -Depth 10); continue }
       if ($path -eq 'api/confirm' -and $method -eq 'POST') { Handle-Confirm $ctx; continue }
       if ($path -eq 'api/fail' -and $method -eq 'POST') { Handle-Fail $ctx; continue }
+      if ($path -eq 'api/my-orders' -and $method -eq 'GET') { Handle-MyOrders $ctx; continue }
+      if ($path -eq 'api/cancel' -and $method -eq 'POST') { Handle-Cancel $ctx; continue }
       if ($path.StartsWith('api/')) { Send-Error $ctx 404 'NOT_FOUND' 'Unknown API'; continue }
 
       # Static files (server-only files are not served)

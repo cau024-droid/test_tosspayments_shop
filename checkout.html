@@ -27,6 +27,7 @@
         <section class="box">
           <div class="box-head">배송 정보</div>
           <div class="box-body">
+            <p class="notice member-hint" id="member-hint" hidden><a href="login.html?next=checkout.html"><u>로그인</u></a>하면 배송지가 미리 채워지고, 주문 내역에서 주문을 확인·취소할 수 있어요.</p>
             <div class="form-row"><label for="c-name">받는 분</label><input id="c-name" autocomplete="name" placeholder="이름" /></div>
             <div class="form-row"><label for="c-phone">휴대폰</label><input id="c-phone" type="tel" autocomplete="tel" placeholder="01012345678" /></div>
             <div class="form-row"><label for="c-email">이메일</label><input id="c-email" type="email" autocomplete="email" placeholder="example@email.com" /></div>
@@ -60,6 +61,7 @@
 
   <div id="footer"></div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
   <script src="js/products.js"></script>
   <script src="js/common.js"></script>
   <script src="js/checkout.js"></script>
