@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>장바구니 | OOTD STORE</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="header"></div>
+
+  <main class="inner">
+    <div class="page-head">
+      <div class="breadcrumb"><a href="index.html">홈</a> › 장바구니</div>
+      <h1 class="page-title">장바구니</h1>
+    </div>
+
+    <div class="two-col">
+      <section class="box">
+        <div class="box-head">상품 <span id="cart-count"></span></div>
+        <div id="cart-lines"></div>
+      </section>
+
+      <aside class="box summary">
+        <div class="box-head">결제 예정 금액</div>
+        <div class="box-body">
+          <div class="sum-row"><span>상품 금액</span><span id="s-origin"></span></div>
+          <div class="sum-row"><span>할인 금액</span><span id="s-discount"></span></div>
+          <div class="sum-row"><span>배송비</span><span id="s-ship"></span></div>
+          <div class="sum-row total"><span>총 결제 금액</span><span id="s-total"></span></div>
+          <button type="button" class="btn btn-black" id="order-btn">주문하기</button>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <div id="footer"></div>
+
+  <script src="js/products.js"></script>
+  <script src="js/common.js"></script>
+  <script>
+    renderLayout("cart");
+
+    function draw() {
+      const sum = summarize(Cart.items());
+      document.getElementById("cart-count").textContent = sum.lines.length;
+      document.getElementById("cart-lines").innerHTML = sum.lines.length
+        ? sum.lines.map((l) => lineHtml(l, true)).join("")
+        : `<p class="empty">장바구니가 비어 있어요.<br><br><a href="index.html"><u>쇼핑 계속하기</u></a></p>`;
+      document.getElementById("s-origin").textContent = won(sum.origin);
+      document.getElementById("s-discount").textContent = "-" + won(sum.discount);
+      document.getElementById("s-ship").textContent = sum.shipping ? won(sum.shipping) : "무료";
+      document.getElementById("s-total").textContent = won(sum.total);
+      document.getElementById("order-btn").disabled = sum.lines.length === 0;
+    }
+
+    document.getElementById("cart-lines").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-act]");
+      if (!b) return;
+      const [id, size] = b.dataset.key.split("|");
+      let items = Cart.items();
+      const item = items.find((i) => i.id === id && i.size === size);
+      if (!item) return;
+      if (b.dataset.act === "plus") item.qty = Math.min(10, item.qty + 1);
+      if (b.dataset.act === "minus") item.qty = Math.max(1, item.qty - 1);
+      if (b.dataset.act === "remove") items = items.filter((i) => i !== item);
+      Cart.set(items);
+      draw();
+    });
+
+    document.getElementById("order-btn").onclick = () => {
+      save("checkout", { from: "cart", items: Cart.items() });
+      location.href = "checkout.html";
+    };
+
+    draw();
+  </script>
+</body>
+</html>

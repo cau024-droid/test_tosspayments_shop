@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>주문서 | OOTD STORE</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <!-- 토스페이먼츠 결제위젯 SDK v2 -->
+  <script src="https://js.tosspayments.com/v2/standard"></script>
+</head>
+<body>
+  <div id="header"></div>
+
+  <main class="inner">
+    <div class="page-head">
+      <div class="breadcrumb"><a href="index.html">홈</a> › 주문서</div>
+      <h1 class="page-title">주문서 <span class="test-badge">테스트 결제</span></h1>
+    </div>
+
+    <div class="two-col">
+      <div style="display:grid; gap:20px">
+        <section class="box">
+          <div class="box-head">주문 상품 <span id="item-count"></span></div>
+          <div id="order-lines"></div>
+        </section>
+
+        <section class="box">
+          <div class="box-head">배송 정보</div>
+          <div class="box-body">
+            <div class="form-row"><label for="c-name">받는 분</label><input id="c-name" autocomplete="name" placeholder="이름" /></div>
+            <div class="form-row"><label for="c-phone">휴대폰</label><input id="c-phone" type="tel" autocomplete="tel" placeholder="01012345678" /></div>
+            <div class="form-row"><label for="c-email">이메일</label><input id="c-email" type="email" autocomplete="email" placeholder="example@email.com" /></div>
+            <div class="form-row"><label for="c-addr">주소</label><input id="c-addr" autocomplete="street-address" placeholder="배송받을 주소" /></div>
+          </div>
+        </section>
+
+        <section class="box">
+          <div class="box-head">결제 수단</div>
+          <div id="payment-method"></div>
+          <div id="agreement"></div>
+        </section>
+      </div>
+
+      <aside class="box summary">
+        <div class="box-head">결제 금액</div>
+        <div class="box-body">
+          <div class="sum-row"><span>상품 금액</span><span id="s-origin"></span></div>
+          <div class="sum-row"><span>할인 금액</span><span id="s-discount"></span></div>
+          <div class="sum-row"><span>배송비</span><span id="s-ship"></span></div>
+          <div class="sum-row total"><span>최종 결제 금액</span><span id="s-total"></span></div>
+          <button type="button" class="btn btn-black" id="pay-btn" disabled>결제하기</button>
+          <p class="notice">
+            토스페이먼츠 <b>테스트 환경</b>이라 실제로 돈이 빠져나가지 않아요.<br />
+            주문 내용을 확인했으며 결제에 동의합니다.
+          </p>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <div id="footer"></div>
+
+  <script src="js/products.js"></script>
+  <script src="js/common.js"></script>
+  <script src="js/checkout.js"></script>
+</body>
+</html>

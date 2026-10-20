@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>상품 상세 | OOTD STORE</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="header"></div>
+
+  <main class="inner" id="detail-root"></main>
+
+  <div id="footer"></div>
+
+  <script src="js/products.js"></script>
+  <script src="js/common.js"></script>
+  <script>
+    const p = getProduct(qs("id"));
+    renderLayout(p ? p.cat : "home");
+    const root = document.getElementById("detail-root");
+
+    if (!p) {
+      root.innerHTML = `<p class="empty">상품을 찾을 수 없어요. <a href="index.html"><u>홈으로</u></a></p>`;
+    } else {
+      document.title = `${p.name} | OOTD STORE`;
+      const cat = CATEGORIES[p.cat];
+      const off = pct(p);
+      const state = { size: null, qty: 1 };
+
+      root.innerHTML = `
+        <div class="page-head" style="padding-bottom:0">
+          <div class="breadcrumb"><a href="index.html">홈</a> › <a href="${cat.page}">${cat.name}</a> › ${p.sub}</div>
+        </div>
+        <div class="detail">
+          <div class="thumb" style="background:${p.bg}"><div class="art">${productArt(p)}</div></div>
+          <div>
+            <a class="d-brand" href="${cat.page}">${escapeHtml(p.brand)}</a>
+            <h1 class="d-name">${escapeHtml(p.name)}</h1>
+            <div class="d-price">
+              ${off > 0 ? `<span class="origin">${won(p.price)}</span>` : ""}
+              <span class="now">${off > 0 ? `<span class="discount">${off}%</span>` : ""}${won(p.sale)}</span>
+            </div>
+            <dl class="d-rows">
+              <div class="d-row"><dt>후기</dt><dd>★ ${p.rating} · ${p.reviews.toLocaleString()}개</dd></div>
+              <div class="d-row"><dt>좋아요</dt><dd>♥ ${p.likes.toLocaleString()}</dd></div>
+              <div class="d-row"><dt>배송</dt><dd>${p.free ? "무료배송 · " : "배송비 3,000원 · "}오늘 출발 (오후 2시 전 주문)</dd></div>
+            </dl>
+
+            <div class="opt-label">사이즈</div>
+            <div class="sizes" id="sizes">
+              ${cat.sizes.map((s) => `<button type="button" class="size" data-size="${s}">${s}</button>`).join("")}
+            </div>
+
+            <div class="opt-label">수량</div>
+            <div class="qty">
+              <button type="button" id="minus" aria-label="수량 감소">−</button>
+              <input id="qty" type="number" min="1" max="10" value="1" aria-label="수량" />
+              <button type="button" id="plus" aria-label="수량 증가">+</button>
+            </div>
+
+            <div class="total-box"><span>총 상품 금액</span><strong id="total">${won(p.sale)}</strong></div>
+
+            <div class="btns">
+              <button type="button" class="btn btn-white btn-icon like-btn-big" id="like" aria-label="좋아요">${Likes.has(p.id) ? "♥" : "♡"}</button>
+              <button type="button" class="btn btn-white" id="add-cart">장바구니</button>
+              <button type="button" class="btn btn-black" id="buy-now">구매하기</button>
+            </div>
+          </div>
+        </div>`;
+
+      const qtyInput = document.getElementById("qty");
+      const setQty = (n) => {
+        state.qty = Math.max(1, Math.min(10, n || 1));
+        qtyInput.value = state.qty;
+        document.getElementById("total").textContent = won(p.sale * state.qty);
+      };
+      document.getElementById("minus").onclick = () => setQty(state.qty - 1);
+      document.getElementById("plus").onclick = () => setQty(state.qty + 1);
+      qtyInput.onchange = () => setQty(parseInt(qtyInput.value, 10));
+
+      document.getElementById("sizes").addEventListener("click", (e) => {
+        const b = e.target.closest("[data-size]");
+        if (!b) return;
+        state.size = b.dataset.size;
+        document.querySelectorAll(".size").forEach((s) => s.classList.toggle("active", s === b));
+      });
+
+      const likeBtn = document.getElementById("like");
+      likeBtn.onclick = () => {
+        const on = Likes.toggle(p.id);
+        likeBtn.textContent = on ? "♥" : "♡";
+        toast(on ? "좋아요에 추가했어요" : "좋아요를 취소했어요");
+      };
+
+      const needSize = () => {
+        if (state.size) return false;
+        toast("사이즈를 선택해 주세요");
+        return true;
+      };
+      document.getElementById("add-cart").onclick = () => {
+        if (needSize()) return;
+        Cart.add(p.id, state.size, state.qty);
+        toast("장바구니에 담았어요");
+      };
+      document.getElementById("buy-now").onclick = () => {
+        if (needSize()) return;
+        save("checkout", { from: "direct", items: [{ id: p.id, size: state.size, qty: state.qty }] });
+        location.href = "checkout.html";
+      };
+    }
+  </script>
+</body>
+</html>

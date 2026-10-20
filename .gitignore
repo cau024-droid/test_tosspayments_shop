@@ -1,0 +1,5 @@
+# Test server order data
+server-data/
+
+# Local Claude settings
+.claude/settings.local.json

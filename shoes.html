@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>신발 | OOTD STORE</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="header"></div>
+
+  <main class="inner">
+    <div class="page-head">
+      <div class="breadcrumb"><a href="index.html">홈</a> › 신발</div>
+      <h1 class="page-title">신발</h1>
+    </div>
+
+    <div class="toolbar">
+      <div class="chips" id="chips"></div>
+      <div>
+        <span class="count" id="count"></span>
+        <select class="sort" id="sort" aria-label="정렬">
+          <option value="popular">인기순</option>
+          <option value="discount">할인율순</option>
+          <option value="low">낮은 가격순</option>
+          <option value="high">높은 가격순</option>
+          <option value="review">후기순</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="grid" id="grid"></div>
+  </main>
+
+  <div id="footer"></div>
+
+  <script src="js/products.js"></script>
+  <script src="js/common.js"></script>
+  <script>renderCategoryPage("shoes");</script>
+</body>
+</html>

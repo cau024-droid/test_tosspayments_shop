@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OOTD STORE</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="header"></div>
+
+  <main>
+    <section class="hero" id="hero"></section>
+
+    <div class="inner" id="sections"></div>
+  </main>
+
+  <div id="footer"></div>
+
+  <script src="js/products.js"></script>
+  <script src="js/common.js"></script>
+  <script>
+    renderLayout("home");
+
+    const heroes = [
+      { cat: "top",   bg: "#1d1d1d", sample: "T005", small: "NEW SEASON",  title: "가볍게 걸치는<br>데일리 상의" },
+      { cat: "shoes", bg: "#3b3b3b", sample: "S003", small: "RUNNING",     title: "매일 신는<br>스니커즈 & 러닝화" },
+      { cat: "pants", bg: "#2a3342", sample: "P001", small: "BEST FIT",    title: "핏이 다른<br>와이드 팬츠" },
+    ];
+    document.getElementById("hero").innerHTML = heroes.map((h) => `
+      <a class="hero-card" href="${CATEGORIES[h.cat].page}" style="background:${h.bg}">
+        <div class="bg">${productArt(getProduct(h.sample))}</div>
+        <div class="txt"><small>${h.small}</small><strong>${h.title}</strong></div>
+      </a>`).join("");
+
+    document.getElementById("sections").innerHTML = Object.entries(CATEGORIES).map(([key, cat]) => {
+      const top = PRODUCTS.filter((p) => p.cat === key).sort((a, b) => b.likes - a.likes).slice(0, 5);
+      return `
+        <section class="section">
+          <div class="section-title">
+            <h2>${cat.name} 랭킹</h2>
+            <a href="${cat.page}">전체보기 ›</a>
+          </div>
+          <div class="grid">${top.map((p, i) => productCard(p, i + 1)).join("")}</div>
+        </section>`;
+    }).join("");
+  </script>
+</body>
+</html>
