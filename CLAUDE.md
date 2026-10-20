@@ -10,11 +10,13 @@ OOTD STORE: 빌드 도구 없이 HTML·CSS·바닐라 JS로 만든 쇼핑몰 샘
 
 ## 실행
 
-- `package.json`, 빌드, 린트, 테스트가 없어요. 이 PC에는 Node도 설치돼 있지 않아요.
+- `package.json`, 빌드, 린트, 테스트가 없어요. 이 PC에는 Node도 Python도 없어요. (파일 수정은 Edit 도구나 sed로)
 - 로컬 서버: `powershell -ExecutionPolicy Bypass -File serve.ps1` → http://localhost:8080
   - `.claude/launch.json`에 `shop`으로 등록돼 있어요. (preview_start `{name: "shop"}`)
+    - `serve.ps1`을 고쳤으면 preview_stop 후 다시 시작해요. 8081 같은 다른 포트를 알려줘도 서버는 `-Port 8080`으로 떠요. 8080으로 들어가요.
   - 다른 시크릿 키: `$env:TOSS_SECRET_KEY = 'test_gsk_...'`. `test_`로 시작하지 않는 키는 거부해요.
 - 배포: GitHub `main`에 push하면 Vercel이 배포해요. `api/*.js`가 서버 함수예요.
+  - 배포 확인: 이번에 새로 만든 페이지나 API를 `curl -s -o /dev/null -w "%{http_code}"`로 15초마다 불러서 404가 바뀌면 끝난 거예요. (보통 30초 안팎)
 
 ## 확인 방법
 
@@ -25,6 +27,7 @@ OOTD STORE: 빌드 도구 없이 HTML·CSS·바닐라 JS로 만든 쇼핑몰 샘
   - 문법·로직만 미리 보려면 preview 탭에서 소스를 `fetch`해 `new Function("require","module","exports","process","Buffer", src)`로 읽고, `fetch`를 가짜로 바꿔서 핸들러를 불러요. 로컬 서버가 `api/` 경로를 가로채서 `api/*.js` 파일은 그대로 받을 수 없어요(임시 폴더에 복사해서 읽고 지워요).
 - DB 권한(RLS): `execute_sql`의 `do` 블록에서 테스트 회원을 `auth.users`에 넣고 `set local role authenticated` + `request.jwt.claims`로 회원을 흉내 낸 뒤, 마지막에 `raise exception`으로 결과를 보여주고 모두 되돌려요.
 - 회원 가입·로그인은 Supabase Auth(외부)로 가서 Claude가 대신할 수 없어요. 사용자가 직접 가입해서 확인해요.
+  - 메일 링크가 돌아올 주소는 Supabase 대시보드 Authentication → URL Configuration에서 정해요(MCP로는 못 바꿔요). 기본 메일은 팀 멤버 이메일로만 가요. 자세한 건 `README.md`에 있어요.
 
 ## 구조에서 알아야 할 것
 
