@@ -54,7 +54,7 @@ OOTD STORE: 빌드 도구 없이 HTML·CSS·바닐라 JS로 만든 쇼핑몰 샘
 
 ### 금액 규칙이 세 곳에 있어요
 
-배송비 규칙(3만원 이상 또는 전 상품 무료배송이면 0원, 아니면 3,000원)이 `js/common.js`의 `summarize`(화면 표시), `lib/shop.js`의 `calcAmount`, `serve.ps1`의 `Get-OrderAmount`에 각각 있어요. 바꿀 때는 세 곳을 함께 바꿔요. `checkout.js`는 서버가 돌려준 금액이 화면 금액과 다르면 결제를 막아요.
+배송비 규칙(3만원 이상 또는 전 상품 무료배송이면 0원, 아니면 3,000원)이 `js/common.js`의 `summarize`(화면 표시), `lib/shop.js`의 `calcAmount`, `serve.ps1`의 `Get-OrderAmount`에 각각 있어요. 바꿀 때는 세 곳을 함께 바꿔요. 검색엔진·AI용 글에도 같은 규칙이 적혀 있어서 `js/common.js`의 `productJsonLd`(배송비)·`productDescription`, `index.html` FAQ(화면·JSON-LD), `llms.txt`, `og-image.png`도 고쳐요. `checkout.js`는 서버가 돌려준 금액이 화면 금액과 다르면 결제를 막아요.
 
 ### 상품 데이터는 정규식으로 읽어요
 
