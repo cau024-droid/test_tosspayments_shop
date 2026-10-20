@@ -77,7 +77,7 @@ async function initPayment() {
       const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId, orderName, items: order.items }),
+        body: JSON.stringify({ orderId, orderName, items: order.items, customer: { name, phone, email, addr } }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "주문을 저장하지 못했어요");
@@ -106,7 +106,8 @@ async function initPayment() {
         ...(email ? { customerEmail: email } : {}),
       });
     } catch (err) {
-      // 사용자가 결제창을 닫은 경우 등
+      // 사용자가 결제창을 닫은 경우 등. 주문에 이유를 남겨요.
+      reportPaymentFail(orderId, err.code, err.message);
       toast(err.message || "결제가 취소됐어요");
     }
   });

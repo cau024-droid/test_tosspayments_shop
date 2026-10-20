@@ -17,6 +17,17 @@ function save(key, value) {
   try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* ignore */ }
 }
 
+// ---- 결제 실패 기록 ----
+// 결제창을 닫았거나 실패한 이유를 서버 주문에 남겨요. 실패해도 화면에는 영향이 없어요.
+function reportPaymentFail(orderId, code, message) {
+  if (!orderId) return Promise.resolve();
+  return fetch("/api/fail", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ orderId, code, message }),
+  }).catch(() => {});
+}
+
 // ---- 장바구니 ----
 const Cart = {
   items() { return load("cart", []); },

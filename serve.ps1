@@ -1,7 +1,8 @@
 # Local test server (PowerShell only, no install needed)
 #   - Serves the static shop pages
-#   - POST /api/orders   : saves an order and calculates its amount on the server
+#   - POST /api/orders   : calculates the amount on the server and saves the order as PENDING
 #   - POST /api/confirm  : checks the amount and calls the Toss Payments confirm API with the secret key
+#   - POST /api/fail     : records why a payment did not complete (FAILED / USER_CANCELED)
 #   - GET  /api/orders   : lists saved orders (for testing)
 #
 # Usage: powershell -ExecutionPolicy Bypass -File serve.ps1  ->  http://localhost:8080
@@ -18,6 +19,8 @@ if ($SecretKey -notlike 'test_*') { throw 'This is a test server. Use a test sec
 
 $FreeShippingMin = 30000
 $ShippingFee = 3000
+# Error codes when the customer closes the payment window (widget: USER_CANCEL, failUrl: PAY_PROCESS_CANCELED)
+$CancelCodes = @('USER_CANCEL', 'PAY_PROCESS_CANCELED')
 
 $root = $PSScriptRoot
 $dataDir = Join-Path $root 'server-data'
@@ -117,6 +120,26 @@ function Invoke-Toss([string]$path, $body) {
   return @{ status = $status; body = $text }
 }
 
+# Same rules as the checkout form and lib/shop.js parseCustomer.
+function Get-Customer($c) {
+  if (-not $c) { throw 'Invalid customer name' }
+  $name = ([string]$c.name).Trim()
+  $phone = ([string]$c.phone) -replace '\D', ''
+  $email = ([string]$c.email).Trim()
+  $addr = ([string]$c.addr).Trim()
+  if (-not $name -or $name.Length -gt 50) { throw 'Invalid customer name' }
+  if ($phone -notmatch '^01\d{8,9}$') { throw 'Invalid customer phone' }
+  if ($email -and ($email.Length -gt 100 -or $email -notmatch '^[^\s@]+@[^\s@]+$')) { throw 'Invalid customer email' }
+  if (-not $addr -or $addr.Length -gt 200) { throw 'Invalid customer address' }
+  return [ordered]@{ name = $name; phone = $phone; email = $email; addr = $addr }
+}
+
+function Get-Text($value, [int]$max) {
+  $s = [string]$value
+  if ($s.Length -gt $max) { $s = $s.Substring(0, $max) }
+  return $s
+}
+
 # ---------- API routes ----------
 function Handle-CreateOrder($ctx) {
   $body = Read-Body $ctx
@@ -131,19 +154,35 @@ function Handle-CreateOrder($ctx) {
   } catch {
     return Send-Error $ctx 400 'INVALID_ITEMS' $_.Exception.Message
   }
+  try {
+    $customer = Get-Customer $body.customer
+  } catch {
+    return Send-Error $ctx 400 'INVALID_CUSTOMER' $_.Exception.Message
+  }
 
   $orders[$body.orderId] = [ordered]@{
-    orderId   = $body.orderId
-    orderName = $body.orderName
-    amount    = $amount
-    items     = @($body.items)
-    status    = 'READY'
-    createdAt = (Get-Date).ToString('o')
-    payment   = $null
+    orderId     = $body.orderId
+    orderName   = Get-Text $body.orderName 200
+    amount      = $amount
+    items       = @($body.items)
+    status      = 'PENDING'
+    customer    = $customer
+    createdAt   = (Get-Date).ToString('o')
+    updatedAt   = (Get-Date).ToString('o')
+    failCode    = $null
+    failMessage = $null
+    payment     = $null
   }
   Save-Orders
   Write-Host "[order] $($body.orderId) amount=$amount"
   Send-Json $ctx 200 (@{ orderId = $body.orderId; amount = $amount } | ConvertTo-Json -Compress)
+}
+
+function Set-OrderFailed($order, [string]$status, $code, $message) {
+  $order.status = $status
+  $order.failCode = if ($code) { Get-Text $code 100 } else { 'UNKNOWN_ERROR' }
+  $order.failMessage = if ($message) { Get-Text $message 500 } else { $null }
+  $order.updatedAt = (Get-Date).ToString('o')
 }
 
 function Handle-Confirm($ctx) {
@@ -156,23 +195,48 @@ function Handle-Confirm($ctx) {
     return Send-Error $ctx 404 'ORDER_NOT_FOUND' 'Order not found (the server may have restarted)'
   }
   # Refreshing the success page: return the already confirmed payment.
-  if ($order.status -eq 'DONE') {
-    return Send-Json $ctx 200 ($order.payment | ConvertTo-Json -Depth 10 -Compress)
+  if ($order.payment) {
+    if ($order.payment.paymentKey -eq $body.paymentKey) {
+      return Send-Json $ctx 200 ($order.payment | ConvertTo-Json -Depth 10 -Compress)
+    }
+    return Send-Error $ctx 409 'DUPLICATED_ORDER' 'This order has already been paid'
   }
   if ([int]$body.amount -ne $order.amount) {
     return Send-Error $ctx 400 'AMOUNT_MISMATCH' "Amount does not match the order ($($order.amount))"
   }
 
   $result = Invoke-Toss '/v1/payments/confirm' @{ paymentKey = $body.paymentKey; orderId = $body.orderId; amount = $order.amount }
+  $res = $result.body | ConvertFrom-Json
   if ($result.status -eq 200) {
-    $order.status = 'DONE'
-    $order.payment = $result.body | ConvertFrom-Json
+    $order.status = $res.status
+    $order.payment = $res
+    $order.failCode = $null
+    $order.failMessage = $null
+    $order.updatedAt = (Get-Date).ToString('o')
   } else {
-    $order.status = 'FAILED'
+    Set-OrderFailed $order 'FAILED' $res.code $res.message
   }
   Save-Orders
   Write-Host "[confirm] $($body.orderId) -> $($result.status)"
   Send-Json $ctx $result.status $result.body
+}
+
+# Records why a payment did not complete. Paid orders are never changed.
+function Handle-Fail($ctx) {
+  $body = Read-Body $ctx
+  if (-not $body -or $body.orderId -notmatch '^[A-Za-z0-9_-]{6,64}$') {
+    return Send-Error $ctx 400 'INVALID_ORDER_ID' 'orderId must be 6-64 chars of letters, digits, - or _'
+  }
+  $status = if ($CancelCodes -contains $body.code) { 'USER_CANCELED' } else { 'FAILED' }
+  $order = $orders[[string]$body.orderId]
+  $updated = $false
+  if ($order -and -not $order.payment) {
+    Set-OrderFailed $order $status $body.code $body.message
+    Save-Orders
+    $updated = $true
+  }
+  Write-Host "[fail] $($body.orderId) -> $status (updated=$updated)"
+  Send-Json $ctx 200 (@{ orderId = $body.orderId; status = $status; updated = $updated } | ConvertTo-Json -Compress)
 }
 
 # ---------- server ----------
@@ -192,6 +256,7 @@ try {
       if ($path -eq 'api/orders' -and $method -eq 'POST') { Handle-CreateOrder $ctx; continue }
       if ($path -eq 'api/orders' -and $method -eq 'GET')  { Send-Json $ctx 200 (ConvertTo-Json @($orders.Values) -Depth 10); continue }
       if ($path -eq 'api/confirm' -and $method -eq 'POST') { Handle-Confirm $ctx; continue }
+      if ($path -eq 'api/fail' -and $method -eq 'POST') { Handle-Fail $ctx; continue }
       if ($path.StartsWith('api/')) { Send-Error $ctx 404 'NOT_FOUND' 'Unknown API'; continue }
 
       # Static files (server-only files are not served)
