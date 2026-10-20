@@ -78,7 +78,7 @@
       const last = load("lastOrder", null);
       if (last && last.orderId === orderId && last.status === "DONE") return showDone(last);
 
-      // items 는 서버가 금액을 다시 계산하는 데 써요. (Vercel 서버 함수는 주문을 저장하지 않아요)
+      // items 는 서버가 금액을 다시 계산하고 주문에 함께 저장하는 데 써요.
       const items = pending && pending.orderId === orderId ? pending.items : [];
       try {
         const res = await fetch("/api/confirm", {
