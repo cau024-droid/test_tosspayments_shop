@@ -97,6 +97,7 @@ OOTD STORE: 빌드 도구 없이 HTML·CSS·바닐라 JS로 만든 쇼핑몰 샘
 - 홈 FAQ는 화면(`#faq`)과 `FAQPage` JSON-LD 두 곳에 같은 글로 있어요. 배송비·취소 기간 같은 규칙을 바꾸면 FAQ와 `llms.txt`도 고쳐요.
 - 상품을 더하거나 가격을 바꾸면 `sitemap.xml`과 `llms.txt`의 상품 목록, 카테고리 페이지의 설명(개수·가격 범위)을 함께 고쳐요.
 - `og-image.png`(1200×630)는 PowerShell `System.Drawing`으로 만들었어요.
+- Google Search Console(URL 접두어 속성)에 등록돼 있고 `sitemap.xml`을 제출했어요. 소유 확인 파일 `google536bb01c62436244.html`을 지우면 확인이 풀려요.
 
 ## 관례
 
