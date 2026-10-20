@@ -27,6 +27,14 @@ powershell -ExecutionPolicy Bypass -File serve.ps1
 - `POST /api/confirm` — 저장된 금액과 비교한 뒤 시크릿 키로 토스페이먼츠 결제 승인 API를 호출해요.
 - `GET /api/orders` — 저장된 주문 목록 (테스트용)
 
+## Vercel 배포
+
+`api/orders.js`, `api/confirm.js`가 Vercel 서버 함수로 같은 API를 제공해요(공통 로직은 `lib/shop.js`).
+Vercel 함수는 주문을 저장하지 않으므로, 결제 승인 때 상품 목록으로 금액을 다시 계산해서 비교해요.
+
+- 본인 상점 키를 쓰려면 Vercel 프로젝트 **Settings → Environment Variables**에 `TOSS_SECRET_KEY`를 추가하고 다시 배포하세요.
+- `serve.ps1`, `.claude`, `.mcp.json`은 `.vercelignore`로 배포에서 제외돼요.
+
 ## 키
 
 기본값은 토스페이먼츠 문서에 공개된 테스트 키라 실제로 청구되지 않아요.
