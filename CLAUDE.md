@@ -10,19 +10,21 @@ OOTD STORE: 빌드 도구 없이 HTML·CSS·바닐라 JS로 만든 쇼핑몰 샘
 
 ## 실행
 
-- `package.json`, 빌드, 린트, 테스트가 없어요. 이 PC에는 Node도 Python도 없어요. (파일 수정은 Edit 도구나 sed로)
+- `package.json`, 빌드, 린트, 테스트가 없어요. 이 PC에는 Node도 Python도 없어요(`python`은 MS Store 바로가기라 실행 안 돼요). 파일 수정은 Edit 도구나 sed로, 이미지는 PowerShell `System.Drawing`으로 만들어요.
 - 로컬 서버: `powershell -ExecutionPolicy Bypass -File serve.ps1` → http://localhost:8080
   - `.claude/launch.json`에 `shop`으로 등록돼 있어요. (preview_start `{name: "shop"}`)
     - `serve.ps1`을 고쳤으면 preview_stop 후 다시 시작해요. 8081 같은 다른 포트를 알려줘도 서버는 `-Port 8080`으로 떠요. 8080으로 들어가요.
   - 다른 시크릿 키: `$env:TOSS_SECRET_KEY = 'test_gsk_...'`. `test_`로 시작하지 않는 키는 거부해요.
 - 배포: GitHub `main`에 push하면 Vercel이 배포해요. `api/*.js`가 서버 함수예요.
-  - 배포 확인: 이번에 새로 만든 페이지나 API를 `curl -s -o /dev/null -w "%{http_code}"`로 15초마다 불러서 404가 바뀌면 끝난 거예요. (보통 30초 안팎)
+  - 배포 확인: 이번에 새로 만든 페이지나 API를 15초마다 불러서 404가 바뀌면 끝난 거예요. (보통 30초 안팎)
+    `for i in $(seq 1 16); do [ "$(curl -s -o /dev/null -w "%{http_code}" https://testtosspaymentsshop-taupe.vercel.app/<새 파일>)" = 200 ] && break; sleep 15; done`
 
 ## 확인 방법
 
 - API: preview 탭에서 `fetch`로 호출하고, `GET /api/orders`(로컬만)로 저장 결과를 봐요.
 - 결제 끝까지: 결제위젯 → 퀵계좌이체 → "다음" → 테스트 비밀번호 `000000` (키패드 숫자 위치가 매번 바뀌어요)
 - 결제창을 닫으면 위젯이 `USER_CANCEL` 에러를 던져요.
+- Claude in Chrome의 `javascript_tool`은 결과에 주소 쿼리·쿠키처럼 보이는 값(응답 헤더 등)이 있으면 `[BLOCKED]`로 가려요. 상태 코드·개수·`@type`처럼 짧은 값만 돌려받아요.
 - Vercel 함수(`api/*.js`)는 이 PC에서 실행할 수 없어요. 배포한 뒤에 확인해요.
   - 문법·로직만 미리 보려면 preview 탭에서 소스를 `fetch`해 `new Function("require","module","exports","process","Buffer", src)`로 읽고, `fetch`를 가짜로 바꿔서 핸들러를 불러요. 로컬 서버가 `api/` 경로를 가로채서 `api/*.js` 파일은 그대로 받을 수 없어요(임시 폴더에 복사해서 읽고 지워요).
 - DB 권한(RLS): `execute_sql`의 `do` 블록에서 테스트 회원을 `auth.users`에 넣고 `set local role authenticated` + `request.jwt.claims`로 회원을 흉내 낸 뒤, 마지막에 `raise exception`으로 결과를 보여주고 모두 되돌려요.
@@ -56,7 +58,7 @@ OOTD STORE: 빌드 도구 없이 HTML·CSS·바닐라 JS로 만든 쇼핑몰 샘
 
 ### 상품 데이터는 정규식으로 읽어요
 
-서버 두 곳 모두 `js/products.js`를 실행하지 않고 정규식(`id: "..." ... sale: N ... free: true|false`)으로 읽어요. 그래서 상품 하나는 한 줄에 두고, 필드 순서는 `id` → `sale` → `free`를 지켜야 해요. Vercel에서는 `vercel.json`의 `includeFiles`로 이 파일을 함수에 포함해요.
+서버 두 곳 모두 `js/products.js`를 실행하지 않고 정규식(`id: "..." ... sale: N ... free: true|false`)으로 읽어요. 그래서 상품 하나는 한 줄에 두고, 필드 순서는 `id` → `sale` → `free`를 지켜야 해요. 열을 맞추느라 `sale:  99000`처럼 공백 수가 줄마다 달라서, 셸에서 뽑을 때도 `sale: *([0-9]+)`처럼 써요. Vercel에서는 `vercel.json`의 `includeFiles`로 이 파일을 함수에 포함해요.
 
 ### 결제 흐름
 
@@ -99,5 +101,6 @@ OOTD STORE: 빌드 도구 없이 HTML·CSS·바닐라 JS로 만든 쇼핑몰 샘
 ## 관례
 
 - 코드 주석과 화면 문구는 한국어 해요체로 써요. (`serve.ps1` 주석만 영어)
-- 커밋 메시지는 영어로 써요.
+- 커밋 메시지는 영어로 써요. commit할 때는 이번에 바꾼 파일만 골라 `git add`해요(`git add -A`·`git add .` 금지). 작업 폴더에 올리지 않기로 한 변경이 남아 있을 수 있어요.
+- 스터디 노트: 질답이 하나 끝날 때마다 그날 노트(`YYMMDDstudy.md`, 예: `261021study.md`)에 `## N. 제목` / `**질문:**` / `**답:**` 형식으로 이어 쓰고, 그 파일만 commit·push해요.
 - 사용자에게는 코드보다 기능(화면에서 무엇을 할 수 있는지) 중심으로 설명해요.
