@@ -25,6 +25,7 @@ OOTD STORE: 빌드 도구 없이 HTML·CSS·바닐라 JS로 만든 쇼핑몰 샘
 - 결제 끝까지: 결제위젯 → 퀵계좌이체 → "다음" → 테스트 비밀번호 `000000` (키패드 숫자 위치가 매번 바뀌어요)
 - 결제창을 닫으면 위젯이 `USER_CANCEL` 에러를 던져요.
 - Claude in Chrome의 `javascript_tool`은 결과에 주소 쿼리·쿠키처럼 보이는 값(응답 헤더 등)이 있으면 `[BLOCKED]`로 가려요. 상태 코드·개수·`@type`처럼 짧은 값만 돌려받아요.
+- Claude in Chrome에서 `key: ctrl+a`가 글자 "a"로 입력될 수 있어요. 입력란을 바꿀 때는 `find`로 ref를 얻어 `form_input`으로 값을 넣어요.
 - Vercel 함수(`api/*.js`)는 이 PC에서 실행할 수 없어요. 배포한 뒤에 확인해요.
   - 문법·로직만 미리 보려면 preview 탭에서 소스를 `fetch`해 `new Function("require","module","exports","process","Buffer", src)`로 읽고, `fetch`를 가짜로 바꿔서 핸들러를 불러요. 로컬 서버가 `api/` 경로를 가로채서 `api/*.js` 파일은 그대로 받을 수 없어요(임시 폴더에 복사해서 읽고 지워요).
 - DB 권한(RLS): `execute_sql`의 `do` 블록에서 테스트 회원을 `auth.users`에 넣고 `set local role authenticated` + `request.jwt.claims`로 회원을 흉내 낸 뒤, 마지막에 `raise exception`으로 결과를 보여주고 모두 되돌려요.
@@ -98,6 +99,10 @@ OOTD STORE: 빌드 도구 없이 HTML·CSS·바닐라 JS로 만든 쇼핑몰 샘
 - 상품을 더하거나 가격을 바꾸면 `sitemap.xml`과 `llms.txt`의 상품 목록, 카테고리 페이지의 설명(개수·가격 범위)을 함께 고쳐요.
 - `og-image.png`(1200×630)는 PowerShell `System.Drawing`으로 만들었어요.
 - Google Search Console(URL 접두어 속성)에 등록돼 있고 `sitemap.xml`을 제출했어요. 소유 확인 파일 `google536bb01c62436244.html`을 지우면 확인이 풀려요.
+  - 소유 확인 파일은 내려받지 않고 같은 이름·내용(`google-site-verification: <파일 이름>`)으로 만들어 push하면 돼요.
+  - 색인 확인: Search Console 상단 검색창에 주소를 넣는 "URL 검사". Google 검색 `site:` 결과는 색인보다 늦게 나와요.
+  - 리치 결과 테스트에서 상품의 "판매자 목록"은 오류예요. 상품 이미지(`image`)가 없어서예요(제품 스니펫·탐색경로는 정상). FAQ 리치 결과는 Google이 정부·의료 사이트에만 보여줘서 검색 화면에는 안 나와요.
+- 네이버 서치어드바이저(`searchadvisor.naver.com`)는 Claude in Chrome과 앱 내장 브라우저 모두 "안전 제한"으로 막혀서 Claude가 다룰 수 없어요. 등록하지 않았어요. 하려면 사용자가 직접 사이트를 추가하고 소유 확인 값을 알려줘요.
 
 ## 관례
 
